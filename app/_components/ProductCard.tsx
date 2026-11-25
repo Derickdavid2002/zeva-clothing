@@ -1,10 +1,10 @@
+
 "use client"
 
 import { useState } from "react"
 import type { MouseEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import type { Product } from "../types"
 import { useCartStore } from "../store/cartStore"
 import { urlFor } from "@/lib/sanity"
@@ -16,7 +16,6 @@ export default function ProductCard({
 }: {
   product: Product
 }) {
-  const router = useRouter()
   const [added, setAdded] = useState(false)
 
   const addItem = useCartStore((state) => state.addItem)
@@ -53,7 +52,11 @@ export default function ProductCard({
   }
 
   return (
-    <article className="group relative min-w-0 transition-transform duration-200 active:scale-[0.98]">
+    <article
+      className={`group relative min-w-0 transition-transform duration-200 ${
+        available ? "active:scale-[0.98]" : ""
+      }`}
+    >
       <div className="rounded-2xl bg-[#14111B] p-1.5 ring-1 ring-white/[0.07] transition-all duration-300 sm:group-hover:-translate-y-1 sm:group-hover:ring-[#C4B5FD]/40 sm:group-hover:shadow-[0_18px_40px_-18px_rgba(124,58,237,0.55)]">
 
         {/* Image */}
@@ -64,8 +67,10 @@ export default function ProductCard({
               alt={product.name}
               fill
               sizes="(max-width: 639px) 46vw, (max-width: 1023px) 30vw, 20vw"
-              className={`object-cover transition-transform duration-700 ease-out sm:group-hover:scale-[1.07] ${
-                available ? "" : "opacity-50 grayscale"
+              className={`object-cover transition-transform duration-700 ease-out ${
+                available
+                  ? "sm:group-hover:scale-[1.07]"
+                  : "opacity-50 grayscale"
               }`}
             />
           ) : (
@@ -128,12 +133,18 @@ export default function ProductCard({
         {/* Product Information */}
         <div className="px-1.5 pb-1.5 pt-2.5">
           <h3 className="min-h-[2.5em] font-serif text-[13px] leading-snug text-white/90 transition-colors sm:min-h-0 sm:text-[14px] sm:group-hover:text-[#D6C8FF]">
-            <Link
-              href={`/shop/${product.slug.current}`}
-              className="line-clamp-2 no-underline after:absolute after:inset-0 after:z-10 sm:line-clamp-1"
-            >
-              {product.name}
-            </Link>
+            {available ? (
+              <Link
+                href={`/shop/${product.slug.current}`}
+                className="line-clamp-2 no-underline after:absolute after:inset-0 after:z-10 sm:line-clamp-1"
+              >
+                {product.name}
+              </Link>
+            ) : (
+              <span className="line-clamp-2 sm:line-clamp-1 text-white/50">
+                {product.name}
+              </span>
+            )}
           </h3>
 
           <p className="mt-0.5 text-[12px] font-medium text-[#C4B5FD]">

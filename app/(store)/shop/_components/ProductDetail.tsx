@@ -26,7 +26,7 @@ export default function ProductDetail({
   )
 
   const stock = Math.max(0, Number(product.stock ?? 0))
-  const available = product.inStock && stock > 0
+const available = product.inStock !== false && stock > 0
   const canPurchase = available && qty <= stock
 
   const handleAddToCart = () => {

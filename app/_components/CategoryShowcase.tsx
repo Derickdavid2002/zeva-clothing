@@ -38,7 +38,7 @@ const starter: Category[] = [
 const fallbackImages: Record<string, string> = {
   "zeva-wears": "/polo.jpg",
   "zeva-eyewear": "/zevaglasses.jpg",
-  "pretty-in-zeva": "/prettyzeva.jpg",
+  "pretty-in-zeva": "/prettyinzeva.jpg",
 };
 
 export default async function CategoryShowcase() {
