@@ -14,30 +14,52 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+  
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setLoading(true)
+  setError("")
 
-    try {
-      const result = await signIn("credentials", {
-        username: form.username,
-        password: form.password,
-        redirect: false,
-      })
+  try {
+    const result = await signIn("credentials", {
+      username: form.username,
+      password: form.password,
+      redirect: false,
+    })
 
-      if (result?.ok) {
-        router.push("/admin/dashboard")
-        router.refresh()
-      } else {
-        setError("Invalid username or password")
-      }
-    } catch {
-      setError("Something went wrong. Please try again.")
+    console.log("Admin login response:", {
+      ok: result?.ok,
+      status: result?.status,
+      error: result?.error,
+      code: result?.code,
+      url: result?.url,
+    })
+
+    if (result?.ok) {
+      router.replace("/admin/dashboard")
+      router.refresh()
+    } else {
+      const reason =
+        result?.code ||
+        result?.error ||
+        `HTTP ${result?.status ?? "Unknown status"}`
+
+      console.error("Admin login failed:", reason)
+      setError(`Login failed: ${reason}`)
     }
+  } catch (error) {
+    console.error("Admin login exception:", error)
 
+    setError(
+      error instanceof Error
+        ? `Login error: ${error.message}`
+        : "Something went wrong. Check the browser console."
+    )
+  } finally {
     setLoading(false)
   }
+}
+
 
   return (
     <div
