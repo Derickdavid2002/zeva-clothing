@@ -1,22 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-pink: #E83D8A;
-  --color-pink-light: #f472b6;
-  --color-pink-neon: #ff2d92;
+  --color-lilac: #B9A5E8;
+  --color-lilac-light: #D8C9F5;
+  --color-lilac-bright: #C9B7F0;
   --color-dark: #060606;
   --color-dark-2: #0e0e0e;
   --color-dark-3: #111111;
   --color-dark-card: #121212;
   --color-dark-border: #1e1e1e;
-  --color-gold: #c8942a;
-  --color-gold-light: #e8c060;
 
-  --shadow-pink: 0 0 30px rgba(232,61,138,0.4);
-  --shadow-pink-sm: 0 0 12px rgba(232,61,138,0.3);
-  --shadow-pink-lg: 0 0 60px rgba(232,61,138,0.3);
-  --shadow-gold: 0 0 30px rgba(200,148,42,0.4);
-  --shadow-gold-lg: 0 0 60px rgba(200,148,42,0.3);
+  --shadow-lilac: 0 0 30px rgba(185,165,232,0.4);
+  --shadow-lilac-sm: 0 0 12px rgba(185,165,232,0.3);
+  --shadow-lilac-lg: 0 0 60px rgba(185,165,232,0.3);
 
   --animate-marquee: marquee 25s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
@@ -37,8 +33,8 @@
     to { opacity: 1; transform: translateY(0); }
   }
   @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 8px #E83D8A44; }
-    50% { box-shadow: 0 0 22px #E83D8A88, 0 0 40px #E83D8A33; }
+    0%, 100% { box-shadow: 0 0 8px #B9A5E844; }
+    50% { box-shadow: 0 0 22px #B9A5E888, 0 0 40px #B9A5E833; }
   }
   @keyframes heroZoom {
     from { transform: scale(1); }

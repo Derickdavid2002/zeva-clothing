@@ -1,358 +1,267 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  MdCloudUpload,
-  MdCheckCircle,
-  MdCancel,
-  MdStar,
-  MdStarOutline,
-  MdArrowBack,
-  MdAddBox,
-  MdImage,
-} from "react-icons/md"
+import { MdArrowBack, MdAddPhotoAlternate, MdClose } from "react-icons/md"
+import { display } from "@/lib/fonts"
 
-const CATEGORIES = ["Skincare", "Jewelry", "Ladies Care"] as const
-type Category = (typeof CATEGORIES)[number]
-const fmt = (n: string) => {
-  const num = Number(n)
-  if (!n || isNaN(num)) return ""
-  return `₦${num.toLocaleString()}`
+const box =
+  "w-full rounded-xl border border-[#1e1e1e] bg-white/[0.03] px-4 text-white placeholder:text-white/45 outline-none transition-colors focus:border-[#B9A5E8]/50 [color-scheme:dark]"
+const pill = (on: boolean) =>
+  `h-10 px-5 rounded-full border text-sm transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[#B9A5E8]/50 ${
+    on
+      ? "border-[#B9A5E8]/30 bg-[#B9A5E8]/[0.12] text-[#B9A5E8]"
+      : "border-[#1e1e1e] text-white/65 hover:text-white hover:border-white/20"
+  }`
+
+async function upload(file: File) {
+  const body = new FormData()
+  body.append("file", file)
+  const res = await fetch("/api/admin/product-upload", { method: "POST", body })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `Could not upload ${file.name}`)
+  return { _type: "image", asset: { _type: "reference", _ref: data._id } }
 }
+
+const Field = ({ label, children }: { label: string; children: ReactNode }) => (
+  <label className="flex flex-col gap-2">
+    <span className="text-sm text-white/70">{label}</span>
+    {children}
+  </label>
+)
+
+const Heading = ({ children }: { children: ReactNode }) => (
+  <h2 className={`${display.className} text-[28px] font-normal text-white`}>{children}</h2>
+)
 
 export default function ProductForm() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [dragOver, setDragOver] = useState(false)
-  const [form, setForm] = useState({
+  const [f, setF] = useState({
     name: "",
-    category: "Skincare",
+    category: "",
     price: "",
     description: "",
+    stock: "1",
     inStock: true,
     featured: false,
   })
+  const [photos, setPhotos] = useState<File[]>([])
+  const [urls, setUrls] = useState<string[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleImageChange = (file: File) => {
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) =>
+    setF((p) => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    fetch("/api/admin/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: { title: string }[]) => setCategories(items.map((i) => i.title)))
+      .catch(() => setCategories([]))
+  }, [])
+
+  useEffect(() => {
+    const next = photos.map((file) => URL.createObjectURL(file))
+    setUrls(next)
+    return () => next.forEach((u) => URL.revokeObjectURL(u))
+  }, [photos])
+
+  const add = (list: FileList | null) => {
+    const images = Array.from(list ?? []).filter((file) => file.type.startsWith("image/"))
+    if (images.length) setPhotos((p) => [...p, ...images])
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith("image/")) handleImageChange(file)
-  }
+  const price = Number(f.price)
+  const stock = Number(f.stock)
+  const valid =
+    photos.length > 0 &&
+    !!f.name.trim() &&
+    categories.includes(f.category) &&
+    f.price.trim() !== "" &&
+    price >= 0 &&
+    f.stock.trim() !== "" &&
+    Number.isInteger(stock) &&
+    stock >= 0
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!imageFile) return alert("Please select a product image")
-    setLoading(true)
+    if (!valid) return
+    setBusy(true)
+    setError("")
     try {
-      const formData = new FormData()
-      formData.append("file", imageFile)
-      const imageRes = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      })
-      if (!imageRes.ok) throw new Error("Image upload failed")
-      const imageData = await imageRes.json()
-      const slug = form.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
+      const [image, ...images] = await Promise.all(photos.map(upload))
+      const slug = f.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
       const res = await fetch("/api/admin/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          price: Number(form.price),
+          name: f.name.trim(),
+          category: f.category,
+          price,
+          description: f.description.trim(),
+          stock,
+          inStock: f.inStock && stock > 0,
+          featured: f.featured,
           slug: { _type: "slug", current: slug },
-          image: {
-            _type: "image",
-            asset: { _type: "reference", _ref: imageData._id },
-          },
+          image,
+          images,
         }),
       })
-      if (!res.ok) throw new Error("Product creation failed")
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Product creation failed.")
       router.push("/admin/products")
+      router.refresh()
     } catch (err) {
-      console.error(err)
-      alert("Failed to create product. Check console for details.")
+      setError(err instanceof Error ? err.message : "Something went wrong. Try again.")
     } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
   return (
-    <div className="py-6 flex flex-col gap-6 max-w-2xl">
-
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
+    <form onSubmit={submit} className="flex flex-col gap-10 max-w-3xl">
+      <header>
+        <button
+          type="button"
           onClick={() => router.back()}
-          className="w-9 h-9 text-white/40 hover:text-white hover:bg-white/5 rounded-xl"
+          className="inline-flex items-center gap-1.5 h-10 -ml-2 px-2 text-sm text-white/60 hover:text-white transition-colors cursor-pointer"
         >
-          <MdArrowBack size={18} />
-        </Button>
-        <div>
-          <p className="text-[11px] uppercase tracking-[4px] text-[#E83D8A] mb-1 font-semibold">
-            New
-          </p>
-          <h1 className="text-2xl font-bold text-white tracking-wide leading-none">
-            Add Product
-          </h1>
-        </div>
-      </div>
+          <MdArrowBack size={18} /> Back
+        </button>
+        <p className="mt-3 text-sm text-white/60">New product</p>
+        <h1
+          className={`${display.className} mt-1.5 text-[44px] md:text-[56px] font-light leading-[1.05] tracking-[-0.01em] text-white`}
+        >
+          Add product
+        </h1>
+      </header>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
-        {/* Image upload */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Product Image *
-          </label>
-          <label
-            className={`cursor-pointer block transition-all duration-200 ${dragOver ? "scale-[1.01]" : ""}`}
-            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-          >
-            {imagePreview ? (
-              <div className="relative w-full h-52 rounded-2xl overflow-hidden border border-[#E83D8A]/30 group">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                  <MdCloudUpload size={28} className="text-white" />
-                  <span className="text-white text-xs font-semibold tracking-wide">
-                    Click to change image
+      <section className="flex flex-col gap-5">
+        <Heading>Photos</Heading>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {urls.length === photos.length &&
+            urls.map((src, i) => (
+              <div key={src} className="relative aspect-square rounded-2xl overflow-hidden border border-[#2a2342] bg-[#1d1830]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                {i > 0 && (
+                  <button
+                    type="button"
+                    aria-label="Make main photo"
+                    onClick={() => setPhotos((p) => [p[i], ...p.filter((_, j) => j !== i)])}
+                    className="absolute inset-0 cursor-pointer"
+                  />
+                )}
+                {i === 0 && (
+                  <span className="absolute bottom-2 left-2 h-6 px-2.5 inline-flex items-center rounded-full bg-black/70 text-[11px] text-white">
+                    Main
                   </span>
-                </div>
+                )}
+                <button
+                  type="button"
+                  aria-label="Remove photo"
+                  onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}
+                  className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 text-white cursor-pointer"
+                >
+                  <MdClose size={16} />
+                </button>
               </div>
-            ) : (
-              <div className={`w-full h-52 rounded-2xl border-2 border-dashed bg-white/3 flex flex-col items-center justify-center gap-3 transition-all duration-200 ${
-                dragOver
-                  ? "border-[#E83D8A]/60 bg-[#E83D8A]/5"
-                  : "border-[#1e1e1e] hover:border-[#E83D8A]/30 hover:bg-white/5"
-              }`}>
-                <div className="w-12 h-12 rounded-2xl bg-white/5 border border-[#1e1e1e] flex items-center justify-center">
-                  <MdImage size={22} className="text-white/25" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-white/40">
-                    Drop image here or click to upload
-                  </p>
-                  <p className="text-[11px] text-white/20 mt-1">
-                    PNG, JPG, WEBP supported
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-[#1e1e1e]">
-                  <MdCloudUpload size={14} className="text-[#E83D8A]" />
-                  <span className="text-xs font-semibold text-white/50 tracking-wide">
-                    Browse Files
-                  </span>
-                </div>
-              </div>
-            )}
+            ))}
+          <label className="aspect-square rounded-2xl border border-dashed border-[#B9A5E8]/40 text-[#B9A5E8] hover:border-[#B9A5E8] transition-colors flex flex-col items-center justify-center gap-1 text-[13px] cursor-pointer">
+            <MdAddPhotoAlternate size={26} />
+            Add photos
             <input
               type="file"
-              accept="image/*"
-              onChange={e => {
-                const file = e.target.files?.[0]
-                if (file) handleImageChange(file)
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              hidden
+              onChange={(e) => {
+                add(e.target.files)
+                e.target.value = ""
               }}
-              className="hidden"
             />
           </label>
         </div>
+        <p className="text-[13px] text-white/60">
+          The first photo is the main image. Tap another photo to make it the main one.
+        </p>
+      </section>
 
-        {/* Name */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Product Name *
-          </label>
-          <Input
-            type="text"
-            placeholder="e.g. Rose Glow Serum"
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
-            required
-            className="bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/20 focus:border-[#E83D8A]/40 rounded-xl h-11"
-          />
-        </div>
-
-        {/* Category */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Category *
-          </label>
-          <Select
-            value={form.category}
-            onValueChange={val => setForm({ ...form, category: val })}
-          >
-            <SelectTrigger className="bg-white/5 border-[#1e1e1e] text-white focus:border-[#E83D8A]/40 rounded-xl h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-[#111111] border-[#1e1e1e] text-white">
-              {CATEGORIES.map(cat => (
-                <SelectItem
-                  key={cat}
-                  value={cat}
-                  className="text-white/70 hover:text-white focus:bg-[#E83D8A]/10 focus:text-[#E83D8A]"
-                >
-                  {cat}
-                </SelectItem>
+      <section className="flex flex-col gap-5">
+        <Heading>Details</Heading>
+        <Field label="Product name">
+          <input required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Premium oversized t-shirt" className={`${box} h-12`} />
+        </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Category">
+            <select required value={f.category} onChange={(e) => set("category", e.target.value)} className={`${box} h-12`}>
+              <option value="" disabled>
+                Select a category
+              </option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Price */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Price (₦) *
-          </label>
-          <Input
-            type="number"
-            placeholder="e.g. 12500"
-            value={form.price}
-            onChange={e => setForm({ ...form, price: e.target.value })}
-            required
-            min="0"
-            className="bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/20 focus:border-[#E83D8A]/40 rounded-xl h-11"
-          />
-          {form.price && (
-            <p className="text-[11px] text-[#E83D8A] font-bold tracking-wide">
-              Preview: {fmt(form.price)}
-            </p>
-          )}
-        </div>
-
-        {/* Description */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Description
-          </label>
-          <Textarea
-            placeholder="Describe the product — ingredients, benefits, how to use..."
-            value={form.description}
-            onChange={e => setForm({ ...form, description: e.target.value })}
-            rows={4}
-            className="bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/20 focus:border-[#E83D8A]/40 rounded-xl resize-none"
-          />
-          <p className="text-[11px] text-white/20 text-right">
-            {form.description.length} characters
-          </p>
-        </div>
-
-        {/* Toggles */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Product Status
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, inStock: !form.inStock })}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer border ${
-                form.inStock
-                  ? "bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/15"
-                  : "bg-white/5 border-[#1e1e1e] text-white/40 hover:border-white/20"
-              }`}
-            >
-              {form.inStock
-                ? <MdCheckCircle size={15} />
-                : <MdCancel size={15} />
-              }
-              {form.inStock ? "In Stock" : "Out of Stock"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, featured: !form.featured })}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer border ${
-                form.featured
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
-                  : "bg-white/5 border-[#1e1e1e] text-white/40 hover:border-white/20"
-              }`}
-            >
-              {form.featured
-                ? <MdStar size={15} />
-                : <MdStarOutline size={15} />
-              }
-              {form.featured ? "Featured" : "Not Featured"}
-            </button>
-          </div>
-          <p className="text-[11px] text-white/20">
-            Featured products appear on the homepage
-          </p>
-        </div>
-
-        {/* Summary card */}
-        {form.name && (
-          <div className="bg-[#E83D8A]/5 border border-[#E83D8A]/20 rounded-2xl p-4 flex flex-col gap-1.5">
-            <p className="text-[11px] text-[#E83D8A] font-bold uppercase tracking-widest mb-1">
-              Product Summary
-            </p>
-            <p className="text-sm font-semibold text-white">{form.name}</p>
-            <p className="text-[12px] text-white/40">{form.category}</p>
-            {form.price && (
-              <p className="text-base font-black text-[#E83D8A]">
-                {fmt(form.price)}
-              </p>
+            </select>
+            {categories.length === 0 && (
+              <span className="text-[13px] text-amber-300">No categories yet. Create one first.</span>
             )}
-          </div>
+          </Field>
+          <Field label="Price">
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-white/60">₦</span>
+              <input required type="number" min="0" inputMode="numeric" value={f.price} onChange={(e) => set("price", e.target.value)} placeholder="0" className={`${box} h-12 pl-9`} />
+            </div>
+          </Field>
+        </div>
+        <Field label="Available quantity">
+          <input required type="number" min="0" step="1" inputMode="numeric" value={f.stock} onChange={(e) => set("stock", e.target.value)} className={`${box} h-12 sm:max-w-[200px]`} />
+        </Field>
+        <Field label="Description (optional)">
+          <textarea rows={4} value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Describe this product" className={`${box} py-3 resize-none`} />
+        </Field>
+      </section>
+
+      <section className="flex flex-col gap-5">
+        <Heading>Status</Heading>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" aria-pressed={f.inStock} onClick={() => set("inStock", !f.inStock)} className={pill(f.inStock)}>
+            {f.inStock ? "In stock" : "Out of stock"}
+          </button>
+          <button type="button" aria-pressed={f.featured} onClick={() => set("featured", !f.featured)} className={pill(f.featured)}>
+            {f.featured ? "Featured" : "Not featured"}
+          </button>
+        </div>
+      </section>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-300">
+          {error}
+        </p>
+      )}
+
+      <div className="sticky bottom-0 z-10 -mx-5 px-5 md:mx-0 md:px-0 py-4 flex items-center gap-3 border-t border-[#1e1e1e] bg-[#060606]/90 backdrop-blur">
+        {!valid && (
+          <p className="mr-auto hidden sm:block text-[13px] text-white/60">
+            Add a photo, name, category, price and quantity.
+          </p>
         )}
-
-        {/* Actions */}
-        <div className="flex flex-col gap-3 pt-2">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full py-6 bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white font-bold tracking-[1.5px] uppercase text-sm border-none shadow-[0_0_30px_rgba(232,61,138,0.4)] disabled:opacity-50 flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Creating Product...
-              </>
-            ) : (
-              <>
-                <MdAddBox size={18} />
-                Create Product
-              </>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            className="w-full border-[#1e1e1e] bg-transparent text-white/40 hover:text-white hover:border-white/20 hover:bg-white/5 text-sm"
-          >
-            Cancel
-          </Button>
-        </div>
-      </form>
-    </div>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="h-12 px-6 rounded-full border border-[#2a2342] text-sm text-white/85 hover:border-[#B9A5E8]/50 hover:text-white transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={busy || !valid}
+          className="h-12 flex-1 sm:flex-none sm:px-8 rounded-full bg-[#B9A5E8] text-[#1a1226] text-sm font-medium transition-colors hover:bg-[#D8C9F5] disabled:opacity-40 disabled:hover:bg-[#B9A5E8] cursor-pointer"
+        >
+          {busy ? "Creating..." : "Create product"}
+        </button>
+      </div>
+    </form>
   )
 }

@@ -1,294 +1,324 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { urlFor } from "../../../../../lib/sanity"
+import { MdArrowBack, MdAddPhotoAlternate, MdClose } from "react-icons/md"
+import { urlFor } from "@/lib/sanity"
+import { display } from "@/lib/fonts"
 import { Product } from "../../../../types"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  MdArrowBack,
-  MdSave,
-  MdCheckCircle,
-  MdCancel,
-  MdStar,
-  MdStarOutline,
-  MdImage,
-} from "react-icons/md"
 
-const CATEGORIES = ["Skincare", "Jewelry", "Ladies Care"] as const
-type Category = (typeof CATEGORIES)[number]
+type Editing = Product & { stock?: number }
 
-const fmt = (n: number) => `₦${n.toLocaleString()}`
+const box =
+  "w-full rounded-xl border border-[#1e1e1e] bg-white/[0.03] px-4 text-white placeholder:text-white/45 outline-none transition-colors focus:border-[#B9A5E8]/50 [color-scheme:dark]"
+const pill = (on: boolean) =>
+  `h-10 px-5 rounded-full border text-sm transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[#B9A5E8]/50 ${
+    on
+      ? "border-[#B9A5E8]/30 bg-[#B9A5E8]/[0.12] text-[#B9A5E8]"
+      : "border-[#1e1e1e] text-white/65 hover:text-white hover:border-white/20"
+  }`
 
-type FormState = {
-  name: string
-  category: Category
-  price: string
-  description: string
-  inStock: boolean
-  featured: boolean
+async function upload(file: File) {
+  const body = new FormData()
+  body.append("file", file)
+  const res = await fetch("/api/admin/product-upload", { method: "POST", body })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `Could not upload ${file.name}`)
+  return { _type: "image", asset: { _type: "reference", _ref: data._id } }
 }
 
-export default function EditProductForm({ product }: { product: Product }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<FormState>({
-    name: product.name,
-    category: product.category as Category,
-    price: String(product.price),
-    description: product.description || "",
-    inStock: product.inStock,
-    featured: product.featured,
-  })
+const Field = ({ label, children }: { label: string; children: ReactNode }) => (
+  <label className="flex flex-col gap-2">
+    <span className="text-sm text-white/70">{label}</span>
+    {children}
+  </label>
+)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/admin/products/${product._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          price: Number(form.price),
-        }),
-      })
-      if (!res.ok) throw new Error("Update failed")
-      router.push("/admin/products")
-    } catch {
-      alert("Failed to update product")
-    }
-    setLoading(false)
+const Heading = ({ children }: { children: ReactNode }) => (
+  <h2 className={`${display.className} text-[28px] font-normal text-white`}>{children}</h2>
+)
+
+const Tile = (p: { src: string; label?: string; onPick?: () => void; onRemove?: () => void }) => (
+  <div className="relative aspect-square rounded-2xl overflow-hidden border border-[#2a2342] bg-[#1d1830]">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={p.src} alt="" className="w-full h-full object-cover" />
+    {p.onPick && (
+      <button type="button" aria-label="Make main photo" onClick={p.onPick} className="absolute inset-0 cursor-pointer" />
+    )}
+    {p.label && (
+      <span className="absolute bottom-2 left-2 h-6 px-2.5 inline-flex items-center rounded-full bg-black/70 text-[11px] text-white">
+        {p.label}
+      </span>
+    )}
+    {p.onRemove && (
+      <button
+        type="button"
+        aria-label="Remove photo"
+        onClick={p.onRemove}
+        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 text-white cursor-pointer"
+      >
+        <MdClose size={16} />
+      </button>
+    )}
+  </div>
+)
+
+export default function ProductEditor({ product }: { product?: Editing }) {
+  const router = useRouter()
+  const initial = {
+    name: product?.name ?? "",
+    category: product?.category ?? "",
+    price: product ? String(product.price) : "",
+    description: product?.description ?? "",
+    stock: String(product ? product.stock ?? 0 : 1),
+    inStock: product?.inStock ?? true,
+    featured: product?.featured ?? false,
+  }
+  const [f, setF] = useState(initial)
+  const [photos, setPhotos] = useState<File[]>([])
+  const [urls, setUrls] = useState<string[]>([])
+  const [asMain, setAsMain] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+
+  const set = <K extends keyof typeof initial>(k: K, v: (typeof initial)[K]) =>
+    setF((p) => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    fetch("/api/admin/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: { title: string }[]) => setCategories(items.map((i) => i.title)))
+      .catch(() => setCategories([]))
+  }, [])
+
+  useEffect(() => {
+    const next = photos.map((file) => URL.createObjectURL(file))
+    setUrls(next)
+    return () => next.forEach((u) => URL.revokeObjectURL(u))
+  }, [photos])
+
+  const add = (list: FileList | null) => {
+    const images = Array.from(list ?? []).filter((file) => file.type.startsWith("image/"))
+    if (images.length) setPhotos((p) => [...p, ...images])
   }
 
-  const hasChanges =
-    form.name !== product.name ||
-    form.category !== product.category ||
-    form.price !== String(product.price) ||
-    form.description !== (product.description || "") ||
-    form.inStock !== product.inStock ||
-    form.featured !== product.featured
+  const price = Number(f.price)
+  const stock = Number(f.stock)
+  const dirty = photos.length > 0 || JSON.stringify(f) !== JSON.stringify(initial)
+  const valid =
+    !!f.name.trim() &&
+    !!f.category &&
+    f.price.trim() !== "" &&
+    price >= 0 &&
+    f.stock.trim() !== "" &&
+    Number.isInteger(stock) &&
+    stock >= 0 &&
+    (product ? dirty : photos.length > 0 && categories.includes(f.category))
+
+  const cats = f.category && !categories.includes(f.category) ? [f.category, ...categories] : categories
+  const existing = product ? [product.image, ...(product.images || [])].filter(Boolean) : []
+  const firstIsMain = !product || asMain
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!valid) return
+    setBusy(true)
+    setError("")
+    try {
+      const up = await Promise.all(photos.map(upload))
+      const image = firstIsMain ? up[0] : undefined
+      const extra = firstIsMain ? up.slice(1) : up
+      const base = {
+        name: f.name.trim(),
+        category: f.category,
+        price,
+        description: f.description.trim(),
+        stock,
+        featured: f.featured,
+        inStock: product ? f.inStock : f.inStock && stock > 0,
+      }
+      const slug = f.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+      const body = product
+        ? {
+            ...base,
+            ...(image ? { image } : {}),
+            ...(extra.length ? { images: [...(product.images || []), ...extra] } : {}),
+          }
+        : { ...base, slug: { _type: "slug", current: slug }, image, images: extra }
+
+      const res = await fetch(product ? `/api/admin/products/${product._id}` : "/api/admin/products", {
+        method: product ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Something went wrong. Try again.")
+      router.push("/admin/products")
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
-    <div className="py-6 flex flex-col gap-6 max-w-2xl">
-
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
+    <form onSubmit={submit} className="flex flex-col gap-10 max-w-3xl">
+      <header>
+        <button
+          type="button"
           onClick={() => router.back()}
-          className="w-9 h-9 text-white/40 hover:text-white hover:bg-white/5 rounded-xl"
+          className="inline-flex items-center gap-1.5 h-10 -ml-2 px-2 text-sm text-white/60 hover:text-white transition-colors cursor-pointer"
         >
-          <MdArrowBack size={18} />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] uppercase tracking-[4px] text-[#E83D8A] mb-1 font-semibold">
-            Editing
-          </p>
-          <h1 className="text-xl font-bold text-white tracking-wide truncate leading-none">
-            {product.name}
-          </h1>
-        </div>
-        {hasChanges && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex-shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <span className="text-[11px] font-semibold text-amber-400">
-              Unsaved
+          <MdArrowBack size={18} /> Back
+        </button>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-white/60">{product ? "Editing" : "New product"}</p>
+          {product && dirty && (
+            <span className="inline-flex items-center gap-1.5 text-[13px] text-amber-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Unsaved changes
             </span>
-          </div>
-        )}
-      </div>
-
-      {/* Current image */}
-      {product.image && (
-        <div className="relative w-full h-48 rounded-2xl overflow-hidden border border-[#1e1e1e] group">
-          <Image
-            src={urlFor(product.image).width(600).height(400).url()}
-            alt={product.name}
-            fill
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-3 left-3 flex items-center gap-2">
-            <MdImage size={13} className="text-white/50" />
-            <span className="text-[11px] text-white/50 font-semibold tracking-wide">
-              Current Image
-            </span>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
-        {/* Name */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Product Name *
-          </label>
-          <Input
-            type="text"
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
-            required
-            className="bg-white/5 border-[#1e1e1e] text-white focus:border-[#E83D8A]/40 rounded-xl h-11"
-          />
-        </div>
-
-        {/* Category */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Category *
-          </label>
-          <Select
-            value={form.category}
-            onValueChange={val => setForm({ ...form, category: val as Category })}
-          >
-            <SelectTrigger className="bg-white/5 border-[#1e1e1e] text-white focus:border-[#E83D8A]/40 rounded-xl h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-[#111111] border-[#1e1e1e] text-white">
-              {CATEGORIES.map(cat => (
-                <SelectItem
-                  key={cat}
-                  value={cat}
-                  className="text-white/70 hover:text-white focus:bg-[#E83D8A]/10 focus:text-[#E83D8A]"
-                >
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Price */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Price (₦) *
-          </label>
-          <Input
-            type="number"
-            value={form.price}
-            onChange={e => setForm({ ...form, price: e.target.value })}
-            required
-            min="0"
-            className="bg-white/5 border-[#1e1e1e] text-white focus:border-[#E83D8A]/40 rounded-xl h-11"
-          />
-          {form.price && (
-            <p className="text-[11px] text-[#E83D8A] font-bold tracking-wide">
-              Preview: {fmt(Number(form.price))}
-            </p>
           )}
         </div>
+        <h1
+          className={`${display.className} mt-1.5 text-[44px] md:text-[56px] font-light leading-[1.05] tracking-[-0.01em] text-white`}
+        >
+          {product ? product.name : "Add product"}
+        </h1>
+      </header>
 
-        {/* Description */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Description
-          </label>
-          <Textarea
-            value={form.description}
-            onChange={e => setForm({ ...form, description: e.target.value })}
-            rows={4}
-            className="bg-white/5 border-[#1e1e1e] text-white focus:border-[#E83D8A]/40 rounded-xl resize-none"
-          />
-          <p className="text-[11px] text-white/20 text-right">
-            {form.description.length} characters
-          </p>
-        </div>
-
-        {/* Toggles */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[11px] text-white/40 uppercase tracking-widest font-semibold">
-            Product Status
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, inStock: !form.inStock })}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer border ${
-                form.inStock
-                  ? "bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/15"
-                  : "bg-white/5 border-[#1e1e1e] text-white/40 hover:border-white/20"
-              }`}
-            >
-              {form.inStock
-                ? <MdCheckCircle size={14} />
-                : <MdCancel size={14} />
-              }
-              {form.inStock ? "In Stock" : "Out of Stock"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, featured: !form.featured })}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer border ${
-                form.featured
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15"
-                  : "bg-white/5 border-[#1e1e1e] text-white/40 hover:border-white/20"
-              }`}
-            >
-              {form.featured
-                ? <MdStar size={14} />
-                : <MdStarOutline size={14} />
-              }
-              {form.featured ? "Featured" : "Not Featured"}
-            </button>
-          </div>
-        </div>
-
-        {/* Changes summary */}
-        {hasChanges && (
-          <div className="bg-amber-500/5 border border-amber-500/15 rounded-2xl p-4">
-            <p className="text-[11px] text-amber-400 font-bold uppercase tracking-widest mb-2">
-              You have unsaved changes
-            </p>
-            <p className="text-[12px] text-white/40 leading-relaxed">
-              Click Save Changes to apply your updates to the store.
-            </p>
+      <section className="flex flex-col gap-5">
+        <Heading>Photos</Heading>
+        {existing.length > 0 && (
+          <div>
+            <p className="mb-3 text-sm text-white/60">Current photos</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {existing.map((img, i) => (
+                <Tile
+                  key={i}
+                  src={urlFor(img).width(300).height(300).url()}
+                  label={i === 0 && !asMain ? "Main" : undefined}
+                />
+              ))}
+            </div>
           </div>
         )}
-
-        {/* Actions */}
-        <div className="flex flex-col gap-3 pt-2">
-          <Button
-            type="submit"
-            disabled={loading || !hasChanges}
-            className="w-full h-12 bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white font-bold tracking-[1.5px] uppercase text-sm border-none shadow-[0_0_30px_rgba(232,61,138,0.35)] disabled:opacity-40 flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving Changes...
-              </>
-            ) : (
-              <>
-                <MdSave size={18} />
-                Save Changes
-              </>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            className="w-full border-[#1e1e1e] bg-transparent text-white/40 hover:text-white hover:border-white/20 hover:bg-white/5 text-sm"
-          >
-            Cancel
-          </Button>
+        <div>
+          {product && <p className="mb-3 text-sm text-white/60">New photos</p>}
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {urls.length === photos.length &&
+              urls.map((src, i) => (
+                <Tile
+                  key={src}
+                  src={src}
+                  label={i === 0 ? (firstIsMain ? "Main" : "New") : undefined}
+                  onPick={i ? () => setPhotos((p) => [p[i], ...p.filter((_, j) => j !== i)]) : undefined}
+                  onRemove={() => setPhotos((p) => p.filter((_, j) => j !== i))}
+                />
+              ))}
+            <label className="aspect-square rounded-2xl border border-dashed border-[#B9A5E8]/40 text-[#B9A5E8] hover:border-[#B9A5E8] transition-colors flex flex-col items-center justify-center gap-1 text-[13px] cursor-pointer">
+              <MdAddPhotoAlternate size={26} />
+              Add photos
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                hidden
+                onChange={(e) => {
+                  add(e.target.files)
+                  e.target.value = ""
+                }}
+              />
+            </label>
+          </div>
         </div>
-      </form>
-    </div>
+        {product && photos.length > 0 && (
+          <button type="button" aria-pressed={asMain} onClick={() => setAsMain(!asMain)} className={`${pill(asMain)} self-start`}>
+            Use the first new photo as the main image
+          </button>
+        )}
+        <p className="text-[13px] text-white/60">
+          {product
+            ? "Current photos are kept. New photos are added to the gallery."
+            : "The first photo is the main image. Tap another photo to make it the main one."}
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-5">
+        <Heading>Details</Heading>
+        <Field label="Product name">
+          <input required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Premium oversized t-shirt" className={`${box} h-12`} />
+        </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Category">
+            <select required value={f.category} onChange={(e) => set("category", e.target.value)} className={`${box} h-12`}>
+              <option value="" disabled>
+                Select a category
+              </option>
+              {cats.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {categories.length === 0 && (
+              <span className="text-[13px] text-amber-300">No categories yet. Create one first.</span>
+            )}
+          </Field>
+          <Field label="Price">
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-white/60">₦</span>
+              <input required type="number" min="0" inputMode="numeric" value={f.price} onChange={(e) => set("price", e.target.value)} placeholder="0" className={`${box} h-12 pl-9`} />
+            </div>
+          </Field>
+        </div>
+        <Field label="Available quantity">
+          <input required type="number" min="0" step="1" inputMode="numeric" value={f.stock} onChange={(e) => set("stock", e.target.value)} className={`${box} h-12 sm:max-w-[200px]`} />
+        </Field>
+        <Field label="Description (optional)">
+          <textarea rows={4} value={f.description} onChange={(e) => set("description", e.target.value)} placeholder="Describe this product" className={`${box} py-3 resize-none`} />
+        </Field>
+      </section>
+
+      <section className="flex flex-col gap-5">
+        <Heading>Status</Heading>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" aria-pressed={f.inStock} onClick={() => set("inStock", !f.inStock)} className={pill(f.inStock)}>
+            {f.inStock ? "In stock" : "Out of stock"}
+          </button>
+          <button type="button" aria-pressed={f.featured} onClick={() => set("featured", !f.featured)} className={pill(f.featured)}>
+            {f.featured ? "Featured" : "Not featured"}
+          </button>
+        </div>
+      </section>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-300">
+          {error}
+        </p>
+      )}
+
+      <div className="sticky bottom-0 z-10 -mx-5 px-5 md:mx-0 md:px-0 py-4 flex items-center gap-3 border-t border-[#1e1e1e] bg-[#060606]/90 backdrop-blur">
+        {!valid && (
+          <p className="mr-auto hidden sm:block text-[13px] text-white/60">
+            {product ? "Make a change to save." : "Add a photo, name, category, price and quantity."}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="h-12 px-6 rounded-full border border-[#2a2342] text-sm text-white/85 hover:border-[#B9A5E8]/50 hover:text-white transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={busy || !valid}
+          className="h-12 flex-1 sm:flex-none sm:px-8 rounded-full bg-[#B9A5E8] text-[#1a1226] text-sm font-medium transition-colors hover:bg-[#D8C9F5] disabled:opacity-40 disabled:hover:bg-[#B9A5E8] cursor-pointer"
+        >
+          {busy ? (product ? "Saving..." : "Creating...") : product ? "Save changes" : "Create product"}
+        </button>
+      </div>
+    </form>
   )
 }

@@ -11,12 +11,15 @@ export default async function EditProductPage({
 }) {
   const { id } = await params
 
-  const product: Product = await adminClient.fetch(
-    `*[_type == "product" && _id == $id][0] {
-      _id, name, slug, category, price, description, image, inStock, featured
-    }`,
-    { id }
-  )
+  let product: Product | null = null
+  try {
+    product = await adminClient.fetch(
+      `*[_type == "product" && _id == $id][0] { _id, name, slug, category, price, description, image, images, sizes, colors, variants, inStock, featured }`,
+      { id }, { cache: "no-store" }
+    )
+  } catch {
+    redirect("/admin/products")
+  }
 
   if (!product) redirect("/admin/products")
 

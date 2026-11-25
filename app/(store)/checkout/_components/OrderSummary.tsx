@@ -1,9 +1,17 @@
+
+"use client"
+
 import Image from "next/image"
 import { urlFor } from "@/lib/sanity"
 import { CartItem } from "../../../store/cartStore"
-import { MdLock } from "react-icons/md"
+import {
+  MdLock,
+  MdShoppingBag,
+  MdLocalShipping,
+  MdCheckCircle,
+} from "react-icons/md"
 
-const fmt = (n: number) => `₦${n.toLocaleString()}`
+const fmt = (n: number) => `₦${n.toLocaleString("en-NG")}`
 
 export default function OrderSummary({
   items,
@@ -19,142 +27,143 @@ export default function OrderSummary({
   state: string
 }) {
   return (
-    <div
-      className="rounded-2xl p-5"
-      style={{ background: "#111111", border: "1px solid #1e1e1e" }}
-    >
-      {/* Header */}
-      <h3
-        className="text-[11px] uppercase tracking-[3px] font-semibold mb-4"
-        style={{ color: "rgba(255,255,255,0.4)" }}
-      >
-        Order Summary
-      </h3>
+    <div className="relative overflow-hidden rounded-[26px] border border-[#39284D] bg-[#17121F] shadow-[0_20px_70px_rgba(0,0,0,0.3)]">
 
-      {/* Items */}
-      <div className="flex flex-col gap-3 mb-5">
-        {items.map(item => (
-          <div key={item._id} className="flex gap-3 items-center">
-            <div
-              className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0"
-              style={{ border: "1px solid #1e1e1e" }}
-            >
+      {/* Decorative glow */}
+      <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#76549C]/15 blur-[85px]" />
+
+      {/* Header */}
+      <div className="relative border-b border-white/[0.07] px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[2.5px] text-[#B99AEF]">
+              Your selection
+            </p>
+
+            <h3 className="text-xl font-bold tracking-tight text-white">
+              Order Summary
+            </h3>
+          </div>
+
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#76549C]/30 bg-[#76549C]/15 text-[#C4A6F2]">
+            <MdShoppingBag size={22} />
+          </div>
+        </div>
+
+        <p className="mt-2 text-xs text-white/40">
+          {items.length} {items.length === 1 ? "product" : "products"} in your bag
+        </p>
+      </div>
+
+      {/* Products */}
+      <div className="relative space-y-4 px-6 py-6">
+        {items.map((item) => (
+          <div
+            key={item._id}
+            className="flex items-center gap-3"
+          >
+            <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl border border-[#49345F] bg-[#100D16]">
               {item.image && (
                 <Image
-                  src={urlFor(item.image).width(96).height(96).url()}
+                  src={urlFor(item.image).width(160).height(160).url()}
                   alt={item.name}
                   fill
+                  sizes="68px"
                   className="object-cover"
                 />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-[13px] font-semibold truncate"
-                style={{ color: "#f0f0f0" }}
-              >
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-white">
                 {item.name}
               </p>
-              <p
-                className="text-[11px] mt-0.5"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                x{item.qty}
+
+              <p className="mt-1 text-xs text-white/40">
+                Quantity: {item.qty}
+              </p>
+
+              <p className="mt-1 text-[11px] text-[#B99AEF]">
+                {fmt(item.price)} each
               </p>
             </div>
-            <p
-              className="text-[13px] font-bold flex-shrink-0"
-              style={{ color: "#E83D8A" }}
-            >
+
+            <p className="shrink-0 text-sm font-bold text-white">
               {fmt(item.price * item.qty)}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Divider */}
-      <div className="w-full h-px mb-4" style={{ background: "#1e1e1e" }} />
+      {/* Price breakdown */}
+      <div className="relative mx-6 border-t border-white/[0.08] py-5">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-sm text-white/45">Subtotal</span>
+          <span className="text-sm font-semibold text-white">
+            {fmt(subtotal)}
+          </span>
+        </div>
 
-      {/* Subtotal */}
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Subtotal
-        </span>
-        <span className="text-sm font-semibold" style={{ color: "#f0f0f0" }}>
-          {fmt(subtotal)}
-        </span>
-      </div>
+        <div className="mb-4 flex items-center justify-between">
+          <span className="flex items-center gap-2 text-sm text-white/45">
+            <MdLocalShipping className="text-[#B99AEF]" size={17} />
+            Delivery {state && `(${state})`}
+          </span>
 
-      {/* Delivery — only show if fee > 0 */}
-      {deliveryFee > 0 && (
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Delivery {state && `(${state})`}
-            </span>
-            <span className="text-sm font-semibold" style={{ color: "#f0f0f0" }}>
+          {deliveryFee > 0 ? (
+            <span className="text-sm font-semibold text-white">
               {fmt(deliveryFee)}
             </span>
-          </div>
-        </>
-      )}
+          ) : (
+            <span className="text-xs font-medium text-[#C4A6F2]">
+              To be confirmed
+            </span>
+          )}
+        </div>
 
-      {/* Delivery note when fee is 0 */}
-      {deliveryFee === 0 && state && (
-        <div
-          className="flex items-start gap-2 px-3 py-2.5 rounded-xl mb-4"
-          style={{
-            background: "rgba(245,158,11,0.06)",
-            border: "1px solid rgba(245,158,11,0.15)",
-          }}
-        >
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-            style={{ background: "#f59e0b" }}
-          />
-          <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Delivery fee will be communicated after order confirmation
+        {deliveryFee === 0 && state && (
+          <div className="mb-5 rounded-xl border border-[#76549C]/25 bg-[#76549C]/10 px-3 py-3">
+            <p className="text-[11px] leading-5 text-white/55">
+              Your delivery fee will be communicated after your order is
+              confirmed.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-t border-white/[0.08] pt-5">
+          <div>
+            <p className="text-sm font-semibold text-white">Total</p>
+            <p className="mt-1 text-[10px] text-white/35">
+              {deliveryFee > 0
+                ? "Including delivery"
+                : "Delivery fee pending"}
+            </p>
+          </div>
+
+          <p className="text-2xl font-black tracking-tight text-[#C4A6F2]">
+            {fmt(total)}
           </p>
         </div>
-      )}
-
-      {/* Divider */}
-      <div className="w-full h-px mb-4" style={{ background: "#1e1e1e" }} />
-
-      {/* Total */}
-      <div className="flex justify-between items-center mb-5">
-        <span className="font-bold text-sm" style={{ color: "#f0f0f0" }}>
-          Total
-        </span>
-        <span
-          className="text-xl font-black"
-          style={{
-            color: "#E83D8A",
-            textShadow: "0 0 12px rgba(232,61,138,0.4)",
-          }}
-        >
-          {fmt(total)}
-        </span>
       </div>
 
-      {/* Secure badge */}
-      <div
-        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl"
-        style={{
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid #1e1e1e",
-        }}
-      >
-        <MdLock
-          size={13}
-          style={{ color: "rgba(255,255,255,0.25)", flexShrink: 0 }}
-        />
-        <p
-          className="text-center leading-relaxed"
-          style={{ color: "rgba(255,255,255,0.25)", fontSize: 11 }}
-        >
-          Secure bank transfer · Verified before shipping
-        </p>
+      {/* Trust information */}
+      <div className="relative space-y-3 border-t border-white/[0.07] bg-[#100D16]/60 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#76549C]/15 text-[#B99AEF]">
+            <MdLock size={16} />
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-white">
+              Secure payment process
+            </p>
+            <p className="mt-0.5 text-[10px] text-white/40">
+              Bank transfer verified before shipping
+            </p>
+          </div>
+
+          <MdCheckCircle className="ml-auto text-[#B99AEF]" size={17} />
+        </div>
       </div>
     </div>
   )

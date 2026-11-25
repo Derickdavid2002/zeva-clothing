@@ -1,3 +1,4 @@
+import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { adminClient } from "../../../../../lib/adminSanity"
 import { revalidatePath } from "next/cache"
@@ -6,6 +7,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await auth())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   try {
     const { id } = await params
     const body = await req.json()
@@ -26,6 +28,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await auth())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   try {
     const { id } = await params
 

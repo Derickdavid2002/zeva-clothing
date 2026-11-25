@@ -1,8 +1,8 @@
+
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import {
   MdSearch,
   MdShoppingBag,
@@ -49,24 +49,31 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
 }
 
-const fmt = (n: number) => `₦${n.toLocaleString()}`
+const fmt = (n: number) => `₦${n.toLocaleString("en-NG")}`
 
-export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
-  const router = useRouter()
+export default function OrderList({
+  initialOrders,
+}: {
+  initialOrders: any[]
+}) {
   const [orders, setOrders] = useState(initialOrders)
   const [search, setSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
-  const [lastRefresh, setLastRefresh] = useState(new Date())
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
-  const pendingCount = orders.filter(o => o.status === "pending").length
+  const pendingCount = orders.filter(
+    (o) => o.status === "pending"
+  ).length
 
   const fetchOrders = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true)
+
     try {
       const res = await fetch("/api/orders?admin=true", {
         cache: "no-store",
       })
+
       if (res.ok) {
         const data = await res.json()
         setOrders(data)
@@ -74,40 +81,47 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
       }
     } catch (err) {
       console.error("Failed to refresh orders:", err)
+    } finally {
+      if (!silent) setRefreshing(false)
     }
-    if (!silent) setRefreshing(false)
   }, [])
 
-  // Auto refresh every 30 seconds
+  // Set the initial time after mounting and auto-refresh every 30 seconds.
   useEffect(() => {
+    setLastRefresh(new Date())
+
     const interval = setInterval(() => {
       fetchOrders(true)
     }, 30000)
+
     return () => clearInterval(interval)
   }, [fetchOrders])
 
-  const filtered = orders.filter(o => {
+  const filtered = orders.filter((o) => {
     const matchSearch =
       o.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
       o.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
       o.customer?.email?.toLowerCase().includes(search.toLowerCase())
+
     const matchStatus =
       filterStatus === "all" || o.status === filterStatus
+
     return matchSearch && matchStatus
   })
 
   return (
     <div className="py-4 flex flex-col gap-4">
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[4px] text-[#E83D8A] mb-1.5 font-semibold">
+          <p className="text-[11px] uppercase tracking-[4px] text-[#B9A5E8] mb-1.5 font-semibold">
             Manage
           </p>
+
           <h1 className="text-2xl font-bold text-white tracking-wide">
             Orders
           </h1>
+
           <p className="text-sm text-white/30 mt-0.5">
             {orders.length} total · {pendingCount} pending
           </p>
@@ -131,11 +145,15 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
 
       {/* Last refresh time */}
       <p className="text-[10px] text-white/20 -mt-2">
-        Last updated: {lastRefresh.toLocaleTimeString("en-NG", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })}
+        Last updated:{" "}
+        {lastRefresh
+          ? lastRefresh.toLocaleTimeString("en-NG", {
+              timeZone: "Africa/Lagos",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })
+          : "—"}
       </p>
 
       {/* Pending alert */}
@@ -148,6 +166,7 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
           }}
         >
           <MdPending size={16} className="text-amber-400 flex-shrink-0" />
+
           <p className="text-amber-400 text-[12px] font-semibold">
             {pendingCount} order{pendingCount > 1 ? "s" : ""} waiting for payment verification
           </p>
@@ -160,18 +179,19 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
           size={16}
           className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30"
         />
+
         <Input
           type="text"
           placeholder="Search by order number or customer..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/20 focus:border-[#E83D8A]/40 rounded-xl h-11"
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/20 focus:border-[#B9A5E8]/40 rounded-xl h-11"
         />
       </div>
 
       {/* Status filters */}
       <div className="flex gap-2 flex-wrap">
-        {["all", ...Object.keys(STATUS_LABELS)].map(s => (
+        {["all", ...Object.keys(STATUS_LABELS)].map((s) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -179,33 +199,36 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
             style={{
               background:
                 filterStatus === s
-                  ? "rgba(232,61,138,0.15)"
+                  ? "rgba(185,165,232,0.15)"
                   : "rgba(255,255,255,0.05)",
               borderColor:
                 filterStatus === s
-                  ? "rgba(232,61,138,0.35)"
+                  ? "rgba(185,165,232,0.35)"
                   : "#1e1e1e",
               color:
                 filterStatus === s
-                  ? "#E83D8A"
+                  ? "#B9A5E8"
                   : "rgba(255,255,255,0.4)",
             }}
           >
             {s === "all" ? "All" : STATUS_LABELS[s]}
+
             {/* Count badge */}
-            {s !== "all" && orders.filter(o => o.status === s).length > 0 && (
-              <span
-                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white"
-                style={{
-                  background: s === "pending" ? "#f59e0b" : "#E83D8A",
-                  boxShadow: s === "pending"
-                    ? "0 0 6px rgba(245,158,11,0.5)"
-                    : "0 0 6px rgba(232,61,138,0.5)",
-                }}
-              >
-                {orders.filter(o => o.status === s).length}
-              </span>
-            )}
+            {s !== "all" &&
+              orders.filter((o) => o.status === s).length > 0 && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white"
+                  style={{
+                    background: s === "pending" ? "#f59e0b" : "#B9A5E8",
+                    boxShadow:
+                      s === "pending"
+                        ? "0 0 6px rgba(245,158,11,0.5)"
+                        : "0 0 6px rgba(185,165,232,0.5)",
+                  }}
+                >
+                  {orders.filter((o) => o.status === s).length}
+                </span>
+              )}
           </button>
         ))}
       </div>
@@ -213,8 +236,10 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
       {/* Count */}
       <p className="text-[11px] text-white/30 -mt-1">
         Showing{" "}
-        <span className="text-[#E83D8A] font-bold">{filtered.length}</span>
-        {" "}orders
+        <span className="text-[#B9A5E8] font-bold">
+          {filtered.length}
+        </span>{" "}
+        orders
       </p>
 
       {/* Empty state */}
@@ -229,10 +254,12 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
           >
             <MdShoppingBag size={24} className="text-white/20" />
           </div>
+
           <div className="text-center">
             <p className="text-white/40 text-sm font-semibold">
               No orders found
             </p>
+
             <p className="text-white/20 text-xs mt-1">
               Orders appear here once customers checkout
             </p>
@@ -240,12 +267,15 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map(order => {
+          {filtered.map((order) => {
             const StatusIcon = STATUS_ICONS[order.status] ?? MdPending
+
             const statusStyle =
               STATUS_STYLES[order.status] ?? STATUS_STYLES.pending
+
             const date = order.createdAt
               ? new Date(order.createdAt).toLocaleDateString("en-NG", {
+                  timeZone: "Africa/Lagos",
                   day: "numeric",
                   month: "short",
                   year: "numeric",
@@ -253,14 +283,18 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
               : "—"
 
             return (
-              <Link key={order._id} href={`/admin/orders/${order._id}`}>
+              <Link
+                key={order._id}
+                href={`/admin/orders/${order._id}`}
+              >
                 <div
                   className="rounded-2xl p-4 transition-all duration-200 group"
                   style={{
                     background: "#111111",
-                    border: order.status === "pending"
-                      ? "1px solid rgba(245,158,11,0.2)"
-                      : "1px solid #1e1e1e",
+                    border:
+                      order.status === "pending"
+                        ? "1px solid rgba(245,158,11,0.2)"
+                        : "1px solid #1e1e1e",
                   }}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -268,46 +302,58 @@ export default function OrderList({ initialOrders }: { initialOrders: any[] }) {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p
                           className="text-sm font-black tracking-wide"
-                          style={{ color: "#E83D8A" }}
+                          style={{ color: "#B9A5E8" }}
                         >
                           #{order.orderNumber}
                         </p>
+
                         <span
                           className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border flex items-center gap-1 ${statusStyle}`}
                         >
                           <StatusIcon size={10} />
-                          {STATUS_LABELS[order.status]}
+                          {STATUS_LABELS[order.status] ?? order.status}
                         </span>
                       </div>
+
                       <p className="text-white text-[13px] font-semibold truncate">
                         {order.customer?.name}
                       </p>
+
                       <p className="text-white/30 text-[11px] truncate">
                         {order.customer?.email}
                       </p>
+
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <p className="text-white/25 text-[10px]">{date}</p>
+                        <p className="text-white/25 text-[10px]">
+                          {date}
+                        </p>
+
                         <span className="text-white/15 text-[10px]">·</span>
+
                         <p className="text-white/25 text-[10px]">
                           {order.items?.length} item
                           {order.items?.length !== 1 ? "s" : ""}
                         </p>
+
                         <span className="text-white/15 text-[10px]">·</span>
+
                         <p className="text-white/25 text-[10px]">
                           {order.delivery?.state}
                         </p>
                       </div>
                     </div>
+
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <p
                         className="font-black text-[14px]"
-                        style={{ color: "#E83D8A" }}
+                        style={{ color: "#B9A5E8" }}
                       >
                         {fmt(order.total)}
                       </p>
+
                       <MdArrowForward
                         size={15}
-                        className="text-white/20 group-hover:text-[#E83D8A] transition-colors"
+                        className="text-white/20 group-hover:text-[#B9A5E8] transition-colors"
                       />
                     </div>
                   </div>

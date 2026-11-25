@@ -2,8 +2,9 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Luxiana Beauty by Cindy",
-  description: "Premium beauty products crafted for the woman who deserves only the finest.",
+  title: "Zeva Collection",
+  description: "Discover curated fashion, glasses, nails and beauty essentials at Zeva Collection.",
+  applicationName: "Zeva Collection",
 }
 
 export default function RootLayout({

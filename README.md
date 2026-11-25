@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Zeva Collection
 
-## Getting Started
+Independent Next.js storefront and admin dashboard for Zeva Collection. This project uses its own Sanity project; it must never be configured with another store's project ID or API token.
 
-First, run the development server:
+## Requirements
+- Node.js 20.19.5 or newer (Node 22 LTS is also supported by this project)
+- npm
+- A separate Sanity project for Zeva Collection
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Local setup
+1. Run `npm install`.
+2. Copy `.env.example` to `.env.local`.
+3. Use the existing dedicated Zeva Sanity project. The `.env.example` already contains its project ID and production dataset; add a write-capable `SANITY_API_TOKEN` from that same project. Never use another store’s project ID or token.
+4. Set a long random `NEXTAUTH_SECRET` and `ORDER_UPLOAD_SECRET` (use different random values), plus `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
+5. Set Zeva's own bank details in `NEXT_PUBLIC_BANK_NAME`, `NEXT_PUBLIC_BANK_ACCOUNT_NUMBER`, and `NEXT_PUBLIC_BANK_ACCOUNT_NAME`. These are displayed to customers during checkout.
+6. To enable emails, configure a verified sender with Resend and set `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `ADMIN_EMAIL`.
+7. Set the public site URL and optional social links.
+8. Run `npm run dev`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Checkout and pricing
+The customer journey intentionally retains the existing store's bank-transfer checkout: delivery details, payment instructions, payment-proof upload, and confirmation. Product prices and order totals are recalculated on the server from the current Zeva Sanity product records; browser-supplied prices and totals are ignored. Size, colour, and custom options are validated against the current product configuration and saved on each order line.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The payment-proof upload route requires a short-lived, order-specific HMAC token. The general admin upload endpoint is admin-authenticated. **Important:** Sanity image assets are served through Sanity's CDN and are not private object storage. Do not treat payment-proof CDN URLs as confidential. If payment-proof confidentiality is a hard requirement, connect a private object-storage provider before production use.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Checks
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Do not commit `.env.local`, Sanity tokens, admin passwords, or Resend keys.

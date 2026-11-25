@@ -1,35 +1,43 @@
+"use client"
 
-"use client";
+import { useState } from "react"
+import type { MouseEvent } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import type { Product } from "../types"
+import { useCartStore } from "../store/cartStore"
+import { urlFor } from "@/lib/sanity"
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { FaWhatsapp } from "react-icons/fa";
-import { Product } from "../types";
-import { useCartStore } from "../store/cartStore";
-import { urlFor } from "@/lib/sanity";
-
-const fmt = (n: number) => `₦${n.toLocaleString()}`;
-
-const ENQUIRY_ONLY = ["Gold", "Diamonds", "Jewelry", "Moissanite", "Watches"];
+const fmt = (n: number) => `₦${n.toLocaleString()}`
 
 export default function ProductCard({
   product,
 }: {
-  product: Product;
+  product: Product
 }) {
-  const [added, setAdded] = useState(false);
+  const router = useRouter()
+  const [added, setAdded] = useState(false)
 
-  const addItem = useCartStore((state) => state.addItem);
+  const addItem = useCartStore((state) => state.addItem)
 
-  const isEnquiryOnly = ENQUIRY_ONLY.includes(
-    String(product.category)
-  );
+  const cartItem = useCartStore((state) =>
+    state.items.find((item) => item._id === product._id)
+  )
 
-  const handleAdd = (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    e.preventDefault();
+  const stock = Math.max(0, Number(product.stock ?? 0))
+
+  const available = product.inStock !== false && stock > 0
+
+  const reachedStockLimit = (cartItem?.qty || 0) >= stock
+
+  const canAddToCart = available && !reachedStockLimit
+
+  const handleAdd = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!canAddToCart) return
 
     addItem({
       _id: product._id,
@@ -37,117 +45,102 @@ export default function ProductCard({
       price: product.price,
       image: product.image,
       slug: product.slug.current,
-    });
+      stock,
+    })
 
-    setAdded(true);
-
-    setTimeout(() => {
-      setAdded(false);
-    }, 1600);
-  };
-
-  const handleWhatsApp = (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    window.open(
-      `https://wa.me/2348081859922?text=${encodeURIComponent(
-        `Hello! I'm interested in *${product.name}* from the ${product.category} collection. Please provide more details and pricing. Thank you!`
-      )}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-  };
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1600)
+  }
 
   return (
-    <Link
-      href={`/shop/${product.slug.current}`}
-      className="group block bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-[#1e1e1e] rounded-2xl overflow-hidden transition-all duration-300 hover:border-[rgba(232,61,138,0.5)] hover:-translate-y-1.5 no-underline"
-    >
-      {/* Image */}
-      <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#111]">
-        {product.image ? (
-          <Image
-            src={urlFor(product.image).width(600).height(450).url()}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">
-            🌸
-          </div>
-        )}
+    <article className="group relative min-w-0 transition-transform duration-200 active:scale-[0.98]">
+      <div className="rounded-2xl bg-[#14111B] p-1.5 ring-1 ring-white/[0.07] transition-all duration-300 sm:group-hover:-translate-y-1 sm:group-hover:ring-[#C4B5FD]/40 sm:group-hover:shadow-[0_18px_40px_-18px_rgba(124,58,237,0.55)]">
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060606]/60 to-transparent" />
+        {/* Image */}
+        <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-[#1B1724]">
+          {product.image ? (
+            <Image
+              src={urlFor(product.image).width(500).height(625).url()}
+              alt={product.name}
+              fill
+              sizes="(max-width: 639px) 46vw, (max-width: 1023px) 30vw, 20vw"
+              className={`object-cover transition-transform duration-700 ease-out sm:group-hover:scale-[1.07] ${
+                available ? "" : "opacity-50 grayscale"
+              }`}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-serif text-3xl italic text-[#C4B5FD]/30">
+                Z.
+              </span>
+            </div>
+          )}
 
-        <span className="absolute top-3 left-3 bg-[rgba(232,61,138,0.15)] border border-[rgba(232,61,138,0.4)] text-[#f472b6] text-[9px] font-bold px-3 py-1 rounded-full tracking-[1.5px] uppercase backdrop-blur-[8px]">
-          {product.category}
-        </span>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-        {!product.inStock && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-white/50 text-sm font-bold uppercase tracking-widest">
-              Out of Stock
+          {/* Category */}
+          {product.category && (
+            <span className="absolute left-2 top-2 max-w-[70%] truncate rounded-full bg-black/45 px-2 py-1 text-[8px] uppercase tracking-[1.5px] text-white/90 backdrop-blur-md">
+              {product.category}
             </span>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Info */}
-      <div className="px-5 pt-[18px] pb-[22px]">
-        <h3 className="text-[#f0f0f0] text-[15px] font-semibold mb-2 tracking-wide">
-          {product.name}
-        </h3>
-
-        <p className="text-[#4a4a4a] text-xs leading-[1.65] mb-[18px] line-clamp-2">
-          {product.description}
-        </p>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[#E83D8A] font-extrabold text-[19px] [text-shadow:0_0_12px_rgba(232,61,138,0.4)]">
-            {fmt(product.price)}
+          {/* Available Stock */}
+          <span
+            className={`absolute bottom-2 left-2 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md ${
+              !available
+                ? "border-white/20 bg-black/70 text-white/60"
+                : stock <= 3
+                  ? "border-amber-400/30 bg-black/70 text-amber-300"
+                  : "border-emerald-400/30 bg-black/70 text-emerald-300"
+            }`}
+          >
+            {!available
+              ? "Out of Stock"
+              : stock === 1
+                ? "1 Left"
+                : `${stock} Available`}
           </span>
 
-          {isEnquiryOnly ? (
-            <button
-              type="button"
-              onClick={handleWhatsApp}
-              className="flex items-center gap-2 text-white px-[18px] py-[9px] rounded-[9px] font-bold text-xs tracking-wide transition-all duration-300 cursor-pointer"
-              style={{
-                background:
-                  "linear-gradient(135deg, #128C7E, #25D366)",
-                boxShadow:
-                  "0 4px 16px rgba(37,211,102,0.35)",
-              }}
-            >
-              <FaWhatsapp size={14} />
-              Enquire
-            </button>
-          ) : (
+          {/* Quick Add */}
+          {available && (
             <button
               type="button"
               onClick={handleAdd}
-              disabled={!product.inStock}
-              className={`text-white border-none px-[18px] py-[9px] rounded-[9px] font-bold text-xs cursor-pointer transition-all duration-300 tracking-wide ${
+              disabled={!canAddToCart}
+              aria-label={`Add ${product.name} to cart`}
+              title={
+                reachedStockLimit
+                  ? "You've added all available stock"
+                  : "Add to cart"
+              }
+              className={`absolute bottom-2 right-2 z-20 flex h-8 w-8 items-center justify-center rounded-full text-[16px] font-medium leading-none text-[#100C18] shadow-[0_6px_18px_rgba(0,0,0,0.45)] transition-all duration-300 after:absolute after:-inset-2 after:content-[''] active:scale-90 sm:hover:scale-110 disabled:cursor-not-allowed disabled:opacity-40 ${
                 added
-                  ? "bg-gradient-to-br from-[#1a5c2a] to-[#22703a] shadow-[0_4px_16px_rgba(26,92,42,0.4)]"
-                  : product.inStock
-                  ? "bg-gradient-to-br from-[#E83D8A] to-[#c0256e] shadow-[0_4px_16px_rgba(232,61,138,0.35)]"
-                  : "bg-white/10 text-white/30 cursor-not-allowed"
+                  ? "bg-emerald-400"
+                  : "bg-[#C4B5FD] sm:hover:bg-white"
               }`}
             >
-              {added
-                ? "✓ Added!"
-                : product.inStock
-                ? "+ Add to Cart"
-                : "Sold Out"}
+              {added ? "✓" : reachedStockLimit ? "✓" : "+"}
             </button>
           )}
         </div>
+
+        {/* Product Information */}
+        <div className="px-1.5 pb-1.5 pt-2.5">
+          <h3 className="min-h-[2.5em] font-serif text-[13px] leading-snug text-white/90 transition-colors sm:min-h-0 sm:text-[14px] sm:group-hover:text-[#D6C8FF]">
+            <Link
+              href={`/shop/${product.slug.current}`}
+              className="line-clamp-2 no-underline after:absolute after:inset-0 after:z-10 sm:line-clamp-1"
+            >
+              {product.name}
+            </Link>
+          </h3>
+
+          <p className="mt-0.5 text-[12px] font-medium text-[#C4B5FD]">
+            {fmt(product.price)}
+          </p>
+        </div>
       </div>
-    </Link>
-  );
+    </article>
+  )
 }

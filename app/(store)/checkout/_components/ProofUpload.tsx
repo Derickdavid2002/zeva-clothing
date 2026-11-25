@@ -17,7 +17,7 @@ export default function ProofUpload({
   onBack,
 }: {
   loading: boolean
-  onSubmit: (proofId: string, proofUrl: string) => void
+  onSubmit: (file: File) => Promise<void>
   onBack: () => void
 }) {
   const [file, setFile] = useState<File | null>(null)
@@ -32,8 +32,8 @@ export default function ProofUpload({
       setError("Please upload a JPG or PNG image")
       return
     }
-    if (f.size > 10 * 1024 * 1024) {
-      setError("File too large. Max 10MB")
+    if (f.size > 5 * 1024 * 1024) {
+      setError("File too large. Max 5MB")
       return
     }
     setError("")
@@ -50,34 +50,13 @@ export default function ProofUpload({
     }
     setUploading(true)
     setError("")
-
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || "Upload failed")
-      }
-
-      // Build the proof URL from the asset
-      const proofUrl = data.url || 
-        `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/production/${data._id
-          .replace("image-", "")
-          .replace(/-(?=[^-]*$)/, ".")}`
-
-      onSubmit(data._id, proofUrl)
-    } catch (err: any) {
-      console.error("Upload error:", err)
-      setError(err.message || "Failed to upload proof. Please try again.")
+      await onSubmit(file)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to place order. Please try again.")
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   return (
@@ -103,8 +82,8 @@ export default function ProofUpload({
               background: "rgba(255,255,255,0.02)",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = "rgba(232,61,138,0.4)"
-              e.currentTarget.style.background = "rgba(232,61,138,0.03)"
+              e.currentTarget.style.borderColor = "rgba(185,165,232,0.4)"
+              e.currentTarget.style.background = "rgba(185,165,232,0.03)"
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = "#1e1e1e"
@@ -125,18 +104,18 @@ export default function ProofUpload({
                 Tap to upload payment screenshot
               </p>
               <p className="text-[11px] text-white/20 mt-1">
-                PNG, JPG supported · Max 10MB
+                PNG, JPG, WEBP supported · Max 5MB
               </p>
             </div>
             <div
               className="flex items-center gap-2 px-4 py-2 rounded-xl"
               style={{
-                background: "rgba(232,61,138,0.08)",
-                border: "1px solid rgba(232,61,138,0.2)",
+                background: "rgba(185,165,232,0.08)",
+                border: "1px solid rgba(185,165,232,0.2)",
               }}
             >
-              <MdCloudUpload size={14} className="text-[#E83D8A]" />
-              <span className="text-xs font-semibold text-[#E83D8A]/70">
+              <MdCloudUpload size={14} className="text-[#B9A5E8]" />
+              <span className="text-xs font-semibold text-[#B9A5E8]/70">
                 Browse Files
               </span>
             </div>
@@ -287,7 +266,7 @@ export default function ProofUpload({
         <Button
           onClick={handleSubmit}
           disabled={!file || loading || uploading}
-          className="flex-1 h-12 bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white font-bold tracking-wide text-sm border-none shadow-[0_0_30px_rgba(232,61,138,0.35)] disabled:opacity-40 flex items-center gap-2"
+          className="flex-1 h-12 bg-gradient-to-r from-[#B9A5E8] to-[#8063B5] hover:opacity-90 text-white font-bold tracking-wide text-sm border-none shadow-[0_0_30px_rgba(185,165,232,0.35)] disabled:opacity-40 flex items-center gap-2"
         >
           {loading || uploading ? (
             <>

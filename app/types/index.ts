@@ -1,29 +1,37 @@
+
 export interface Product {
-  _id: string
-  name: string
-  slug: { current: string }
-  category: "Skincare" | "Kayamata" | "Body Care" | "Fragrance"
-  price: number
-  description: string
-  image: any
-  inStock: boolean
-  featured: boolean
+  _id: string;
+  name: string;
+  slug: {
+    current: string;
+  };
+  category: string;
+  price: number;
+  description: string;
+  image: any;
+  images?: any[];
+  stock: number;
+  inStock: boolean;
+  featured: boolean;
 }
 
-export interface GoldItem {
-  _id: string
-  name: string
-  slug: { current: string }
-  description: string
-  images: any[]
-  order: number
+export interface Category {
+  _id: string;
+  title: string;
+  slug: {
+    current: string;
+  };
+  description?: string;
+  image?: any;
+  order?: number;
 }
 
 export interface CartItem {
-  _id: string
-  name: string
-  price: number
-  image: any
-  slug: string
-  qty: number
+  _id: string;
+  name: string;
+  price: number;
+  image: any;
+  slug: string;
+  qty: number;
+  cartKey?: string;
 }

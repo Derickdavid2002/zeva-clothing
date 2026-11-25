@@ -1,26 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { urlFor } from "@/lib/sanity"
 import { Product } from "../../../types"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import ConfirmModal from "../../_components/ConfirmModal"
-import {
-  MdAdd,
-  MdEdit,
-  MdDelete,
-  MdSearch,
-  MdCheckCircle,
-  MdCancel,
-  MdStar,
-  MdInventory2,
-} from "react-icons/md"
+import { MdSearch, MdInventory2, MdDelete } from "react-icons/md"
+import { display } from "@/lib/fonts"
 
-const CATEGORIES = ["All", "Skincare", "Jewelry", "Ladies Care"]
 const fmt = (n: number) => `₦${n.toLocaleString()}`
 
 export default function ProductList({
@@ -32,6 +21,7 @@ export default function ProductList({
   const [products, setProducts] = useState(initialProducts)
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("All")
+  const [categories, setCategories] = useState<string[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean
@@ -39,7 +29,16 @@ export default function ProductList({
     productName: string
   }>({ open: false, productId: "", productName: "" })
 
-  const filtered = products.filter(p => {
+  useEffect(() => {
+    fetch("/api/admin/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: { title: string }[]) =>
+        setCategories(items.map((i) => i.title))
+      )
+      .catch(() => setCategories([]))
+  }, [])
+
+  const filtered = products.filter((p) => {
     const matchSearch = p.name?.toLowerCase().includes(search.toLowerCase())
     const matchCat = category === "All" || p.category === category
     return matchSearch && matchCat
@@ -58,7 +57,7 @@ export default function ProductList({
       })
       if (!res.ok) throw new Error("Delete failed")
       // Remove from local state immediately
-      setProducts(prev => prev.filter(p => p._id !== productId))
+      setProducts((prev) => prev.filter((p) => p._id !== productId))
       setConfirmModal({ open: false, productId: "", productName: "" })
       // Refresh server data
       router.refresh()
@@ -74,8 +73,8 @@ export default function ProductList({
     value: boolean
   ) => {
     // Optimistic update
-    setProducts(prev =>
-      prev.map(p => (p._id === id ? { ...p, [field]: value } : p))
+    setProducts((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
     )
     try {
       await fetch(`/api/admin/products/${id}`, {
@@ -86,22 +85,24 @@ export default function ProductList({
       router.refresh()
     } catch {
       // Revert on error
-      setProducts(prev =>
-        prev.map(p => (p._id === id ? { ...p, [field]: !value } : p))
+      setProducts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, [field]: !value } : p))
       )
     }
   }
 
-  return (
-    <div className="py-4 flex flex-col gap-4">
+  const pill =
+    "inline-flex items-center flex-shrink-0 whitespace-nowrap h-9 px-4 rounded-full text-[13px] border transition-colors duration-200 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[#B9A5E8]/50"
 
+  return (
+    <div className="flex flex-col">
       {/* Confirm delete modal */}
       <ConfirmModal
         isOpen={confirmModal.open}
-        title="Delete Product"
-        message={`Are you sure you want to delete "${confirmModal.productName}"? This action cannot be undone and will remove it from the store immediately.`}
-        confirmLabel="Yes, Delete"
-        cancelLabel="Keep It"
+        title="Delete product"
+        message={`Are you sure you want to delete "${confirmModal.productName}"? This can't be undone, and it will be removed from the store immediately.`}
+        confirmLabel="Yes, delete"
+        cancelLabel="Keep it"
         variant="danger"
         loading={deleting === confirmModal.productId}
         onConfirm={handleDelete}
@@ -111,226 +112,183 @@ export default function ProductList({
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <header className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[4px] text-[#E83D8A] mb-1.5 font-semibold">
-            Manage
+          <p className="text-sm text-white/60 mb-1.5">
+            {products.length} total {products.length === 1 ? "product" : "products"}
           </p>
-          <h1 className="text-2xl font-bold text-white tracking-wide">
+          <h1
+            className={`${display.className} text-[52px] md:text-[68px] font-light leading-none tracking-[-0.01em] text-white`}
+          >
             Products
           </h1>
-          <p className="text-sm text-white/30 mt-0.5">
-            {products.length} total products
-          </p>
         </div>
-        <Link href="/admin/products/new">
-          <Button
-            size="sm"
-            className="bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white text-xs font-bold tracking-wide border-none shadow-[0_0_20px_rgba(232,61,138,0.3)] flex items-center gap-1.5"
-          >
-            <MdAdd size={15} />
-            Add Product
-          </Button>
+        <Link
+          href="/admin/products/new"
+          className="inline-flex items-center justify-center h-12 px-6 rounded-full bg-[#B9A5E8] text-[#1a1226] text-sm font-medium transition-colors duration-200 hover:bg-[#D8C9F5] outline-none focus-visible:ring-2 focus-visible:ring-[#B9A5E8]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060606]"
+        >
+          Add new product
         </Link>
+      </header>
+
+      {/* Search + filters */}
+      <div className="mt-10 flex flex-col gap-4">
+        <div className="relative">
+          <MdSearch
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
+          />
+          <input
+            type="text"
+            aria-label="Search products"
+            placeholder="Search products"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-12 pl-11 pr-5 rounded-full bg-white/[0.03] border border-[#1e1e1e] text-sm text-white placeholder:text-white/45 outline-none transition-colors focus:border-[#B9A5E8]/50"
+          />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto flex-nowrap -mx-5 px-5 pb-1 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {["All", ...categories].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              aria-pressed={category === cat}
+              className={`${pill} ${
+                category === cat
+                  ? "bg-[#B9A5E8]/[0.12] border-[#B9A5E8]/30 text-[#B9A5E8]"
+                  : "bg-transparent border-[#1e1e1e] text-white/65 hover:text-white hover:border-white/20"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-[13px] text-white/60">
+          Showing <span className="text-white">{filtered.length}</span> of{" "}
+          {products.length}
+        </p>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <MdSearch
-          size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30"
-        />
-        <Input
-          type="text"
-          placeholder="Search products..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/20 focus:border-[#E83D8A]/40 rounded-xl h-11"
-        />
-      </div>
-
-      {/* Category filter */}
-      <div className="flex gap-2 flex-wrap">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className="px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-wide uppercase transition-all cursor-pointer border"
-            style={{
-              background:
-                category === cat
-                  ? "rgba(232,61,138,0.15)"
-                  : "rgba(255,255,255,0.05)",
-              borderColor:
-                category === cat
-                  ? "rgba(232,61,138,0.35)"
-                  : "#1e1e1e",
-              color:
-                category === cat
-                  ? "#E83D8A"
-                  : "rgba(255,255,255,0.4)",
-            }}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Count */}
-      <p className="text-[11px] text-white/30 -mt-1">
-        Showing{" "}
-        <span className="text-[#E83D8A] font-bold">{filtered.length}</span>
-        {" "}of {products.length} products
-      </p>
-
-      {/* Empty state */}
+      {/* List */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid #1e1e1e",
-            }}
-          >
-            <MdInventory2 size={28} className="text-white/20" />
-          </div>
-          <div className="text-center">
-            <p className="text-white/40 text-sm font-semibold">
-              No products found
-            </p>
-            <p className="text-white/20 text-xs mt-1">
-              Try a different search or category
-            </p>
-          </div>
+        <div className="mt-6 rounded-[20px] border border-[#1e1e1e] bg-white/[0.02] px-6 py-16 text-center">
+          <p className={`${display.className} text-[28px] text-white`}>
+            {products.length === 0 ? "Add your first product" : "No products found"}
+          </p>
+          <p className="mt-2 text-sm text-white/60">
+            {products.length === 0
+              ? "Products you add show up here, newest first."
+              : "Try a different search or category."}
+          </p>
+          {products.length === 0 ? (
+            <Link
+              href="/admin/products/new"
+              className="mt-6 inline-flex items-center justify-center h-11 px-5 rounded-full border border-[#2a2342] text-sm text-white/85 hover:border-[#B9A5E8]/50 hover:text-white transition-colors"
+            >
+              Add new product
+            </Link>
+          ) : (
+            <button
+              onClick={() => {
+                setSearch("")
+                setCategory("All")
+              }}
+              className="mt-6 inline-flex items-center justify-center h-11 px-5 rounded-full border border-[#2a2342] text-sm text-white/85 hover:border-[#B9A5E8]/50 hover:text-white transition-colors cursor-pointer"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {filtered.map(product => (
-            <div
+        <ul className="mt-4 border-t border-[#1e1e1e]">
+          {filtered.map((product) => (
+            <li
               key={product._id}
-              className="rounded-2xl overflow-hidden transition-all duration-200"
-              style={{
-                background: "#111111",
-                border: "1px solid #1e1e1e",
-              }}
+              className="flex flex-col gap-4 py-5 border-b border-[#1e1e1e] lg:flex-row lg:items-center lg:gap-6"
             >
-              <div className="flex gap-3 p-4">
-                {/* Image */}
-                <div
-                  className="relative w-[72px] h-[72px] rounded-xl overflow-hidden flex-shrink-0"
-                  style={{ border: "1px solid #1e1e1e", background: "#1a1a1a" }}
-                >
+              {/* Image + info */}
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="relative w-[76px] h-[76px] rounded-2xl overflow-hidden flex-shrink-0 bg-[#1d1830] border border-[#2a2342]">
                   {product.image ? (
                     <Image
-                      src={urlFor(product.image).width(144).height(144).url()}
+                      src={urlFor(product.image).width(152).height(152).url()}
                       alt={product.name}
                       fill
+                      sizes="76px"
                       className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <MdInventory2 size={20} className="text-white/20" />
+                      <MdInventory2 size={20} className="text-white/50" />
                     </div>
                   )}
                 </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-white text-[13px] font-bold truncate">
-                        {product.name}
-                      </p>
-                      <p className="text-white/30 text-[11px] mt-0.5">
-                        {product.category}
-                      </p>
-                      <p
-                        className="text-[14px] font-black mt-1"
-                        style={{ color: "#E83D8A" }}
-                      >
-                        {fmt(product.price)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Toggles */}
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <button
-                      onClick={() =>
-                        handleToggle(product._id, "inStock", !product.inStock)
-                      }
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer border"
-                      style={{
-                        background: product.inStock
-                          ? "rgba(34,197,94,0.1)"
-                          : "rgba(239,68,68,0.1)",
-                        borderColor: product.inStock
-                          ? "rgba(34,197,94,0.25)"
-                          : "rgba(239,68,68,0.25)",
-                        color: product.inStock ? "#22c55e" : "#ef4444",
-                      }}
-                    >
-                      {product.inStock ? (
-                        <MdCheckCircle size={11} />
-                      ) : (
-                        <MdCancel size={11} />
-                      )}
-                      {product.inStock ? "In Stock" : "Out of Stock"}
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        handleToggle(product._id, "featured", !product.featured)
-                      }
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer border"
-                      style={{
-                        background: product.featured
-                          ? "rgba(245,158,11,0.1)"
-                          : "rgba(255,255,255,0.05)",
-                        borderColor: product.featured
-                          ? "rgba(245,158,11,0.25)"
-                          : "#1e1e1e",
-                        color: product.featured
-                          ? "#f59e0b"
-                          : "rgba(255,255,255,0.3)",
-                      }}
-                    >
-                      <MdStar size={11} />
-                      {product.featured ? "Featured" : "Not Featured"}
-                    </button>
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-medium leading-snug text-white line-clamp-2">
+                    {product.name}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-white/60 truncate">
+                    {product.category}
+                  </p>
+                  <p className="mt-1 text-[15px] font-medium text-[#B9A5E8]">
+                    {fmt(product.price)}
+                  </p>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div
-                className="px-4 pb-4 grid grid-cols-2 gap-2"
-              >
-                <Link href={`/admin/products/${product._id}`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-[#1e1e1e] bg-white/3 text-white/50 hover:text-white hover:border-white/20 text-xs font-bold flex items-center gap-1.5"
+              {/* Toggles + actions */}
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 lg:contents">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() =>
+                      handleToggle(product._id, "inStock", !product.inStock)
+                    }
+                    aria-pressed={!!product.inStock}
+                    className={`${pill} ${
+                      product.inStock
+                        ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/15"
+                        : "bg-red-500/10 border-red-500/25 text-red-300 hover:bg-red-500/15"
+                    }`}
                   >
-                    <MdEdit size={13} />
-                    Edit
-                  </Button>
-                </Link>
+                    {product.inStock ? "In stock" : "Out of stock"}
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleToggle(product._id, "featured", !product.featured)
+                    }
+                    aria-pressed={!!product.featured}
+                    className={`${pill} ${
+                      product.featured
+                        ? "bg-[#B9A5E8]/[0.12] border-[#B9A5E8]/30 text-[#B9A5E8] hover:bg-[#B9A5E8]/20"
+                        : "bg-transparent border-[#1e1e1e] text-white/65 hover:text-white hover:border-white/20"
+                    }`}
+                  >
+                    {product.featured ? "Featured" : "Not featured"}
+                  </button>
+                </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openDeleteModal(product._id, product.name)}
-                  className="w-full border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:border-red-500/40 text-xs font-bold flex items-center gap-1.5"
-                >
-                  <MdDelete size={13} />
-                  Delete
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/admin/products/${product._id}`}
+                    className="inline-flex items-center justify-center h-10 px-5 rounded-full border border-[#2a2342] text-sm text-white/85 transition-colors hover:border-[#B9A5E8]/50 hover:text-white outline-none focus-visible:ring-1 focus-visible:ring-[#B9A5E8]/50 lg:h-11 lg:px-6"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => openDeleteModal(product._id, product.name)}
+                    aria-label={`Delete ${product.name}`}
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full text-sm text-red-400 transition-colors hover:bg-red-500/10 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-red-400/50 lg:w-auto lg:h-11 lg:px-5"
+                  >
+                    <MdDelete size={18} className="lg:hidden" />
+                    <span className="hidden lg:inline">Delete</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   )

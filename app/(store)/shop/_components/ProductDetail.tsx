@@ -1,3 +1,4 @@
+
 "use client"
 
 import Image from "next/image"
@@ -5,317 +6,252 @@ import Link from "next/link"
 import { useState } from "react"
 import { useCartStore } from "../../../store/cartStore"
 import { urlFor } from "@/lib/sanity"
-import { Product } from "../../../types"
-import { FaWhatsapp } from "react-icons/fa"
-import { MdShoppingCart, MdCheck } from "react-icons/md"
+import type { Product } from "../../../types/index"
 
 const fmt = (n: number) => `₦${n.toLocaleString()}`
 
-const ENQUIRY_ONLY = ["Jewelry"]
-export default function ProductDetail({ product }: { product: Product }) {
+export default function ProductDetail({
+  product,
+}: {
+  product: Product
+}) {
   const [added, setAdded] = useState(false)
   const [qty, setQty] = useState(1)
-  const addItem = useCartStore(state => state.addItem)
+  const [activeImage, setActiveImage] = useState(0)
 
-  const isEnquiryOnly = ENQUIRY_ONLY.includes(product.category)
+  const addItem = useCartStore((state) => state.addItem)
+
+  const gallery = [product.image, ...(product.images || [])].filter(
+    Boolean
+  )
+
+  const stock = Math.max(0, Number(product.stock ?? 0))
+  const available = product.inStock && stock > 0
+  const canPurchase = available && qty <= stock
 
   const handleAddToCart = () => {
-    for (let i = 0; i < qty; i++) {
-      addItem({
+    if (!canPurchase) return
+
+    addItem(
+      {
         _id: product._id,
         name: product.name,
         price: product.price,
         image: product.image,
         slug: product.slug.current,
-      })
-    }
+        stock,
+      },
+      qty
+    )
+
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
   }
 
-  return (
-    <div className="w-full min-h-screen bg-[#060606]">
-      <div className="max-w-7xl mx-auto px-6 sm:px-12 py-16">
+  const whatsappMessage = encodeURIComponent(
+    `Hello! I'd like to order ${product.name} x${qty}.`
+  )
 
+  return (
+    <div className="min-h-screen w-full bg-[#060606]">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-12 sm:py-16">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 mb-12 text-sm text-white/30">
-          <Link href="/" className="hover:text-[#E83D8A] transition-colors">
+        <div className="mb-8 flex flex-wrap items-center gap-2 text-sm text-white/30 sm:mb-12">
+          <Link
+            href="/"
+            className="transition-colors hover:text-[#B9A5E8]"
+          >
             Home
           </Link>
+
           <span>/</span>
-          <Link href="/shop" className="hover:text-[#E83D8A] transition-colors">
+
+          <Link
+            href="/shop"
+            className="transition-colors hover:text-[#B9A5E8]"
+          >
             Shop
           </Link>
+
           <span>/</span>
-          <span className="text-white/60">{product.name}</span>
+
+          <span className="text-white/60">
+            {product.name}
+          </span>
         </div>
 
-        {/* Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
+          {/* Product Gallery */}
+          <div className="min-w-0">
+            <div className="relative aspect-square overflow-hidden rounded-2xl border border-[#1e1e1e] bg-[#111]">
+              {gallery[activeImage] && (
+                <Image
+                  key={activeImage}
+                  src={urlFor(gallery[activeImage])
+                    .width(1000)
+                    .height(1000)
+                    .url()}
+                  alt={product.name}
+                  fill
+                  priority
+                  className="object-cover transition-opacity duration-300"
+                />
+              )}
 
-          {/* Image */}
-          <div
-            className="relative w-full aspect-square rounded-2xl overflow-hidden"
-            style={{ border: "1px solid #1e1e1e" }}
-          >
-            {product.image && (
-              <Image
-                src={urlFor(product.image).width(800).height(800).url()}
-                alt={product.name}
-                fill
-                className="object-cover"
-                priority
-              />
-            )}
-
-            {/* Category badge */}
-            <span
-              className="absolute top-4 left-4 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest backdrop-blur-sm"
-              style={{
-                border: "1px solid rgba(232,61,138,0.4)",
-                background: "rgba(232,61,138,0.1)",
-                color: "#E83D8A",
-              }}
-            >
-              {product.category}
-            </span>
-
-            {/* Enquiry only badge */}
-            {isEnquiryOnly && (
-              <span
-                className="absolute top-4 right-4 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest backdrop-blur-sm"
-                style={{
-                  border: "1px solid rgba(37,211,102,0.4)",
-                  background: "rgba(37,211,102,0.1)",
-                  color: "#25D366",
-                }}
-              >
-                Enquiry Only
+              <span className="absolute left-4 top-4 rounded-full border border-[#B9A5E8]/40 bg-black/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B9A5E8] backdrop-blur">
+                {product.category}
               </span>
-            )}
 
-            {!product.inStock && (
-              <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ background: "rgba(0,0,0,0.7)" }}
-              >
-                <span className="text-white/60 text-lg font-bold uppercase tracking-widest">
-                  Out of Stock
-                </span>
+              {!available && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                  <span className="text-lg font-bold uppercase tracking-widest text-white/60">
+                    Out of Stock
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Gallery Thumbnails */}
+            {gallery.length > 1 && (
+              <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+                {gallery.map((photo, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setActiveImage(index)}
+                    className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 sm:h-20 sm:w-20 ${
+                      activeImage === index
+                        ? "border-[#B9A5E8]"
+                        : "border-[#30283d]"
+                    }`}
+                  >
+                    <Image
+                      src={urlFor(photo)
+                        .width(160)
+                        .height(160)
+                        .url()}
+                      alt={`${product.name} photo ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Info */}
+          {/* Product Information */}
           <div className="flex flex-col gap-6">
-
-            {/* Title + Price */}
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+              <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">
                 {product.name}
               </h1>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span
-                  className="text-3xl font-black"
-                  style={{
-                    color: "#E83D8A",
-                    textShadow: "0 0 20px rgba(232,61,138,0.4)",
-                  }}
-                >
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-3xl font-black text-[#B9A5E8]">
                   {fmt(product.price)}
                 </span>
-                {product.inStock ? (
-                  <span
-                    className="text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"
-                    style={{
-                      background: "rgba(34,197,94,0.1)",
-                      color: "#22c55e",
-                      border: "1px solid rgba(34,197,94,0.2)",
-                    }}
-                  >
-                    In Stock
-                  </span>
-                ) : (
-                  <span
-                    className="text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"
-                    style={{
-                      background: "rgba(255,255,255,0.05)",
-                      color: "rgba(255,255,255,0.3)",
-                      border: "1px solid #1e1e1e",
-                    }}
-                  >
-                    Out of Stock
-                  </span>
-                )}
+
+                <span
+                  className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${
+                    available
+                      ? "border-green-500/20 bg-green-500/10 text-green-500"
+                      : "border-white/10 bg-white/5 text-white/40"
+                  }`}
+                >
+                  {available
+                    ? `${stock} Available`
+                    : "Out of Stock"}
+                </span>
               </div>
             </div>
 
-            {/* Divider */}
-            <div
-              className="h-px"
-              style={{
-                background:
-                  "linear-gradient(to right, rgba(232,61,138,0.3), transparent)",
-              }}
-            />
+            <div className="h-px bg-gradient-to-r from-[#B9A5E8]/30 to-transparent" />
 
             {/* Description */}
             <p className="text-base leading-relaxed text-white/60">
               {product.description}
             </p>
 
-            {/* Divider */}
-            <div
-              className="h-px"
-              style={{
-                background:
-                  "linear-gradient(to right, rgba(232,61,138,0.3), transparent)",
-              }}
-            />
+            <div className="h-px bg-gradient-to-r from-[#B9A5E8]/30 to-transparent" />
 
-            {/* Actions */}
-            {product.inStock && (
+            {/* Quantity and Cart */}
+            {available && (
               <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs uppercase tracking-widest text-white/50">
+                    Quantity
+                  </span>
 
-                {isEnquiryOnly ? (
-                  /* ENQUIRY ONLY — Gold & Diamonds */
-                  <div className="flex flex-col gap-3">
-                    <div
-                      className="rounded-xl p-4"
-                      style={{
-                        background: "rgba(37,211,102,0.05)",
-                        border: "1px solid rgba(37,211,102,0.15)",
-                      }}
-                    >
-                      <p className="text-[12px] text-white/40 leading-relaxed">
-                        This is a premium item available by enquiry only.
-                        Contact us on WhatsApp for pricing, availability and
-                        more details.
-                      </p>
-                    </div>
-<a
-                    
-                      href={`https://wa.me/2348081859922?text=${encodeURIComponent(
-                        `Hello! I'm interested in *${product.name}* from the ${product.category} collection. Please provide more details and pricing. Thank you!`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-5 rounded-xl font-bold text-sm uppercase tracking-[2px] flex items-center justify-center gap-3 text-white no-underline transition-all duration-300 hover:scale-[1.02] hover:opacity-90"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #128C7E, #25D366)",
-                        boxShadow: "0 4px 24px rgba(37,211,102,0.35)",
-                      }}
-                    >
-                      <FaWhatsapp size={18} />
-                      Enquire on WhatsApp
-                    </a>
-
-                    <a
-                      href="https://instagram.com/Luxiana_Beauty"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-4 rounded-xl font-bold text-sm uppercase tracking-[2px] flex items-center justify-center gap-3 text-white/60 no-underline transition-all duration-300 hover:text-white"
-                      style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid #1e1e1e",
-                      }}
-                    >
-                      Or DM us on Instagram
-                    </a>
-                  </div>
-                ) : (
-                  /* NORMAL — Skincare & Watches */
-                  <>
-                    {/* Qty */}
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs uppercase tracking-widest text-white/50">
-                        Qty
-                      </span>
-                      <div
-                        className="flex items-center gap-3 p-1 rounded-xl"
-                        style={{ border: "1px solid #1e1e1e", background: "rgba(255,255,255,0.05)" }}
-                      >
-                        <button
-                          onClick={() => setQty(q => Math.max(1, q - 1))}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg text-white/60 hover:text-white transition-colors cursor-pointer"
-                          style={{
-                            background: "rgba(255,255,255,0.05)",
-                            border: "1px solid #1e1e1e",
-                          }}
-                        >
-                          −
-                        </button>
-                        <span className="text-white font-bold min-w-[28px] text-center">
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() => setQty(q => q + 1)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg text-white/60 hover:text-white transition-colors cursor-pointer"
-                          style={{
-                            background: "rgba(255,255,255,0.05)",
-                            border: "1px solid #1e1e1e",
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Add to cart */}
+                  <div className="flex items-center gap-3 rounded-xl border border-[#1e1e1e] bg-white/5 p-1">
                     <button
-                      onClick={handleAddToCart}
-                      className="w-full py-5 rounded-xl font-bold text-sm uppercase tracking-[2px] text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-3 cursor-pointer"
-                      style={{
-                        background: added
-                          ? "linear-gradient(135deg, #166534, #15803d)"
-                          : "linear-gradient(135deg, #E83D8A, #c0256e)",
-                        boxShadow: added
-                          ? "0 4px 24px rgba(22,101,52,0.4)"
-                          : "0 0 40px rgba(232,61,138,0.4)",
-                      }}
+                      type="button"
+                      onClick={() =>
+                        setQty((q) => Math.max(1, q - 1))
+                      }
+                      disabled={qty <= 1}
+                      className="h-9 w-9 rounded-lg text-white/60 disabled:opacity-30"
                     >
-                      {added ? (
-                        <>
-                          <MdCheck size={18} />
-                          Added to Cart!
-                        </>
-                      ) : (
-                        <>
-                          <MdShoppingCart size={18} />
-                          Add {qty > 1 ? `${qty} items` : ""} to Cart
-                        </>
-                      )}
+                      −
                     </button>
 
-                    {/* WhatsApp order */}
-                    <a
-                      href={`https://wa.me/2348081859922?text=${encodeURIComponent(
-                        `Hello! I'd like to order *${product.name}* x${qty} — ${fmt(product.price * qty)}. Please confirm availability. Thank you!`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-4 rounded-xl font-bold text-sm uppercase tracking-[2px] flex items-center justify-center gap-3 text-white/60 no-underline transition-all duration-300 hover:text-white"
-                      style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid #1e1e1e",
-                      }}
+                    <span className="min-w-7 text-center font-bold text-white">
+                      {qty}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQty((q) => Math.min(q + 1, stock))
+                      }
+                      disabled={qty >= stock}
+                      className="h-9 w-9 rounded-lg text-white/60 disabled:opacity-30"
                     >
-                      <FaWhatsapp size={16} />
-                      Order via WhatsApp
-                    </a>
-                  </>
-                )}
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={!canPurchase}
+                  className="w-full rounded-xl py-5 text-sm font-bold uppercase tracking-[2px] text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{
+                    background: added
+                      ? "linear-gradient(135deg, #166534, #15803d)"
+                      : "linear-gradient(135deg, #B9A5E8, #8063B5)",
+                  }}
+                >
+                  {added
+                    ? "✓ Added to Cart"
+                    : `Add ${qty > 1 ? `${qty} Items` : "to Cart"}`}
+                </button>
+
+                {/* WhatsApp order link intentionally preserved as commented code */}
+                {/* {process.env.NEXT_PUBLIC_WHATSAPP_URL && (
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_WHATSAPP_URL}?text=${whatsappMessage}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-center text-sm text-white/50 transition-colors hover:text-[#B9A5E8]"
+                  >
+                    Order via WhatsApp
+                  </a>
+                )} */}
               </div>
             )}
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-3 mt-2">
-              {["Premium Quality", "Fast Delivery", "100% Authentic"].map(tag => (
+            {/* Trust Tags */}
+            <div className="mt-2 flex flex-wrap gap-3">
+              {[
+                "Premium Quality",
+                "Fast Delivery",
+                "100% Authentic",
+              ].map((tag) => (
                 <span
                   key={tag}
-                  className="text-[11px] px-3 py-1.5 rounded-full text-white/40"
-                  style={{ border: "1px solid #1e1e1e" }}
+                  className="rounded-full border border-[#1e1e1e] px-3 py-1.5 text-[11px] text-white/40"
                 >
                   ✓ {tag}
                 </span>
@@ -328,7 +264,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         <div className="mt-16">
           <Link
             href="/shop"
-            className="text-sm text-white/40 hover:text-[#E83D8A] transition-colors"
+            className="text-sm text-white/40 transition-colors hover:text-[#B9A5E8]"
           >
             ← Back to Shop
           </Link>

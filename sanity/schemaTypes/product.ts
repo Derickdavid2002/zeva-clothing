@@ -1,7 +1,9 @@
-export default {
+
+const product = {
   name: "product",
   title: "Product",
   type: "document",
+
   fields: [
     {
       name: "name",
@@ -13,21 +15,17 @@ export default {
       name: "slug",
       title: "Slug",
       type: "slug",
-      options: { source: "name", maxLength: 96 },
+      options: {
+        source: "name",
+        maxLength: 96,
+      },
       validation: (Rule: any) => Rule.required(),
     },
     {
       name: "category",
       title: "Category",
       type: "string",
-      options: {
-        list: [
-          { title: "Skincare", value: "Skincare" },
-          { title: "Kayamata", value: "Kayamata" },
-          { title: "Body Care", value: "Body Care" },
-          { title: "Fragrance", value: "Fragrance" },
-        ],
-      },
+      description: "Choose a category managed in the Zeva admin dashboard.",
       validation: (Rule: any) => Rule.required(),
     },
     {
@@ -50,6 +48,26 @@ export default {
       validation: (Rule: any) => Rule.required(),
     },
     {
+      name: "images",
+      title: "Additional Images",
+      type: "array",
+      of: [
+        {
+          type: "image",
+          options: { hotspot: true },
+        },
+      ],
+    },
+    {
+      name: "stock",
+      title: "Available Quantity",
+      type: "number",
+      description: "Total number of pieces available for this product.",
+      initialValue: 0,
+      validation: (Rule: any) =>
+        Rule.required().integer().min(0),
+    },
+    {
       name: "inStock",
       title: "In Stock",
       type: "boolean",
@@ -62,4 +80,6 @@ export default {
       initialValue: false,
     },
   ],
-}
+};
+
+export default product;

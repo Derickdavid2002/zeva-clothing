@@ -119,7 +119,7 @@ export default function OrderDetail({ order }: { order: any }) {
           <MdArrowBack size={18} />
         </Button>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] uppercase tracking-[3px] text-[#E83D8A] mb-0.5 font-semibold">
+          <p className="text-[10px] uppercase tracking-[3px] text-[#B9A5E8] mb-0.5 font-semibold">
             Order Details
           </p>
           <h1 className="text-base font-bold text-white leading-none truncate">
@@ -183,7 +183,7 @@ export default function OrderDetail({ order }: { order: any }) {
                           className="flex-1 h-0.5"
                           style={{
                             background:
-                              i <= currentIndex ? "#E83D8A" : "#1e1e1e",
+                              i <= currentIndex ? "#B9A5E8" : "#1e1e1e",
                           }}
                         />
                       )}
@@ -191,12 +191,12 @@ export default function OrderDetail({ order }: { order: any }) {
                         className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                         style={{
                           background: isActive
-                            ? "#E83D8A"
+                            ? "#B9A5E8"
                             : isDone
                             ? "#22c55e"
                             : "#1e1e1e",
                           boxShadow: isActive
-                            ? "0 0 14px rgba(232,61,138,0.5)"
+                            ? "0 0 14px rgba(185,165,232,0.5)"
                             : "none",
                           border: isDone || isActive
                             ? "none"
@@ -218,7 +218,7 @@ export default function OrderDetail({ order }: { order: any }) {
                           className="flex-1 h-0.5"
                           style={{
                             background:
-                              i < currentIndex ? "#E83D8A" : "#1e1e1e",
+                              i < currentIndex ? "#B9A5E8" : "#1e1e1e",
                           }}
                         />
                       )}
@@ -227,7 +227,7 @@ export default function OrderDetail({ order }: { order: any }) {
                       className="text-[9px] font-semibold text-center leading-tight px-0.5"
                       style={{
                         color: isActive
-                          ? "#E83D8A"
+                          ? "#B9A5E8"
                           : isDone
                           ? "#22c55e"
                           : "rgba(255,255,255,0.2)",
@@ -245,7 +245,7 @@ export default function OrderDetail({ order }: { order: any }) {
               <Button
                 onClick={() => handleStatusUpdate(nextStatus.value)}
                 disabled={updating}
-                className="w-full h-11 bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white font-bold text-sm border-none shadow-[0_0_20px_rgba(232,61,138,0.3)] disabled:opacity-50 flex items-center gap-2 mb-2"
+                className="w-full h-11 bg-gradient-to-r from-[#B9A5E8] to-[#8063B5] hover:opacity-90 text-white font-bold text-sm border-none shadow-[0_0_20px_rgba(185,165,232,0.3)] disabled:opacity-50 flex items-center gap-2 mb-2"
               >
                 {updating ? (
                   <>
@@ -330,11 +330,11 @@ export default function OrderDetail({ order }: { order: any }) {
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{
-                  background: "rgba(232,61,138,0.08)",
-                  border: "1px solid rgba(232,61,138,0.15)",
+                  background: "rgba(185,165,232,0.08)",
+                  border: "1px solid rgba(185,165,232,0.15)",
                 }}
               >
-                <Icon size={14} className="text-[#E83D8A]" />
+                <Icon size={14} className="text-[#B9A5E8]" />
               </div>
               <div className="min-w-0">
                 <p className="text-[9px] text-white/25 uppercase tracking-widest">
@@ -370,11 +370,12 @@ export default function OrderDetail({ order }: { order: any }) {
               <p className="text-white text-[13px] font-semibold truncate">
                 {item.name}
               </p>
+              {(item.size || item.color || item.selectedOptions?.length) && <p className="text-white/35 text-[10px]">{[item.size && `Size: ${item.size}`, item.color && `Colour: ${item.color}`, ...(item.selectedOptions || []).map((option: any) => `${option.label}: ${option.value}`)].filter(Boolean).join(" · ")}</p>}
               <p className="text-white/30 text-[11px]">
                 x{item.qty} · {fmt(item.price)} each
               </p>
             </div>
-            <p className="text-[#E83D8A] font-bold text-[13px] flex-shrink-0">
+            <p className="text-[#B9A5E8] font-bold text-[13px] flex-shrink-0">
               {fmt(item.price * item.qty)}
             </p>
           </div>
@@ -402,8 +403,8 @@ export default function OrderDetail({ order }: { order: any }) {
               Expected Total
             </span>
             <span
-              className="text-[#E83D8A] font-black text-lg"
-              style={{ textShadow: "0 0 10px rgba(232,61,138,0.4)" }}
+              className="text-[#B9A5E8] font-black text-lg"
+              style={{ textShadow: "0 0 10px rgba(185,165,232,0.4)" }}
             >
               {fmt(order.total)}
             </span>
@@ -425,12 +426,12 @@ export default function OrderDetail({ order }: { order: any }) {
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
               style={{
-                background: "rgba(232,61,138,0.08)",
-                border: "1px solid rgba(232,61,138,0.2)",
+                background: "rgba(185,165,232,0.08)",
+                border: "1px solid rgba(185,165,232,0.2)",
               }}
             >
               <span className="text-[10px] text-white/30">Expected:</span>
-              <span className="text-[11px] font-black text-[#E83D8A]">
+              <span className="text-[11px] font-black text-[#B9A5E8]">
                 {fmt(order.total)}
               </span>
             </div>
@@ -465,7 +466,7 @@ export default function OrderDetail({ order }: { order: any }) {
           </div>
           <p className="text-white/20 text-[11px] text-center mt-2">
             Verify that the amount matches{" "}
-            <span className="text-[#E83D8A] font-bold">{fmt(order.total)}</span>
+            <span className="text-[#B9A5E8] font-bold">{fmt(order.total)}</span>
           </p>
         </div>
       )}
@@ -536,16 +537,16 @@ export default function OrderDetail({ order }: { order: any }) {
             <div
               className="rounded-xl p-3 mb-4"
               style={{
-                background: "rgba(232,61,138,0.05)",
-                border: "1px solid rgba(232,61,138,0.15)",
+                background: "rgba(185,165,232,0.05)",
+                border: "1px solid rgba(185,165,232,0.15)",
               }}
             >
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">
                 Order Total Expected
               </p>
               <p
-                className="text-[#E83D8A] text-xl font-black"
-                style={{ textShadow: "0 0 10px rgba(232,61,138,0.4)" }}
+                className="text-[#B9A5E8] text-xl font-black"
+                style={{ textShadow: "0 0 10px rgba(185,165,232,0.4)" }}
               >
                 {fmt(order.total)}
               </p>

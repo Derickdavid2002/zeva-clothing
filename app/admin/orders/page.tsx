@@ -6,14 +6,15 @@ export const revalidate = 0
 export const dynamic = "force-dynamic"
 
 export default async function AdminOrdersPage() {
-  const orders = await adminClient.fetch(
-    `*[_type == "order"] | order(createdAt desc) {
-      _id, orderNumber, status, customer, delivery,
-      items, subtotal, total, createdAt
-    }`,
-    {},
-    { cache: "no-store" }
-  )
+  let orders: any[] = []
+  try {
+    orders = await adminClient.fetch(
+      `*[_type == "order"] | order(createdAt desc) { _id, orderNumber, status, customer, delivery, items, subtotal, total, createdAt }`,
+      {}, { cache: "no-store" }
+    )
+  } catch {
+    // The order list will populate after the Zeva CMS is configured.
+  }
 
   return (
     <AdminLayout>

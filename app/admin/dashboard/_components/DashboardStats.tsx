@@ -1,19 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import {
-  MdInventory2,
-  MdCheckCircle,
-  MdStar,
-  MdCancel,
-  MdCategory,
-  MdAddBox,
-  MdList,
-  MdLanguage,
-  MdTrendingUp,
-  MdArrowForward,
-} from "react-icons/md"
+import { display } from "@/lib/fonts"
 
 interface Stats {
   total: number
@@ -23,221 +11,213 @@ interface Stats {
   categories: number
 }
 
-export default function DashboardStats({ stats }: { stats: Stats }) {
+interface RecentProduct {
+  _id: string
+  name: string
+  price?: number
+  inStock?: boolean
+  category?: string
+  imageUrl?: string | null
+}
+
+interface CategoryItem {
+  _id: string
+  title: string
+}
+
+interface Props {
+  stats: Stats
+  recentProducts?: RecentProduct[]
+  categories?: CategoryItem[]
+}
+
+export default function DashboardStats({
+  stats,
+  recentProducts = [],
+  categories = [],
+}: Props) {
   const statCards = [
+    { label: "Total products", value: stats.total, hint: "Current catalogue", hintColor: "text-white/60" },
+    { label: "In stock", value: stats.inStock, hint: "Active products", hintColor: "text-emerald-300" },
+    { label: "Featured", value: stats.featured, hint: "On homepage", hintColor: "text-[#B9A5E8]" },
     {
-      label: "Total Products",
-      value: stats.total,
-      icon: MdInventory2,
-      iconColor: "text-[#E83D8A]",
-      iconBg: "bg-[#E83D8A]/10",
-      border: "hover:border-[#E83D8A]/30",
-      glow: "hover:shadow-[0_4px_20px_rgba(232,61,138,0.12)]",
-      trend: "+3 this week",
-      trendColor: "text-green-400",
-    },
-    {
-      label: "In Stock",
-      value: stats.inStock,
-      icon: MdCheckCircle,
-      iconColor: "text-green-400",
-      iconBg: "bg-green-500/10",
-      border: "hover:border-green-500/30",
-      glow: "hover:shadow-[0_4px_20px_rgba(34,197,94,0.12)]",
-      trend: "Active products",
-      trendColor: "text-green-400",
-    },
-    {
-      label: "Featured",
-      value: stats.featured,
-      icon: MdStar,
-      iconColor: "text-amber-400",
-      iconBg: "bg-amber-500/10",
-      border: "hover:border-amber-500/30",
-      glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.12)]",
-      trend: "On homepage",
-      trendColor: "text-amber-400",
-    },
-    {
-      label: "Out of Stock",
+      label: "Out of stock",
       value: stats.outOfStock,
-      icon: MdCancel,
-      iconColor: "text-red-400",
-      iconBg: "bg-red-500/10",
-      border: "hover:border-red-500/30",
-      glow: "hover:shadow-[0_4px_20px_rgba(239,68,68,0.12)]",
-      trend: "Needs restocking",
-      trendColor: "text-red-400",
+      hint: "Needs restocking",
+      hintColor: stats.outOfStock > 0 ? "text-red-400" : "text-white/60",
     },
   ]
 
-  const quickActions = [
-    {
-      href: "/admin/products/new",
-      icon: MdAddBox,
-      label: "Add New Product",
-      sub: "Upload & publish instantly",
-      iconBg: "bg-[#E83D8A]/15",
-      iconColor: "text-[#E83D8A]",
-      primary: true,
-    },
-    {
-      href: "/admin/products",
-      icon: MdList,
-      label: "Manage Products",
-      sub: "Edit, toggle stock & featured",
-      iconBg: "bg-blue-500/10",
-      iconColor: "text-blue-400",
-      primary: false,
-    },
-    {
-      href: "/",
-      icon: MdLanguage,
-      label: "View Live Website",
-      sub: "See how customers see it",
-      iconBg: "bg-green-500/10",
-      iconColor: "text-green-400",
-      primary: false,
-    },
-  ]
+  const cellClass = (i: number) =>
+    [
+      "py-7",
+      i < 2 ? "border-b border-[#1e1e1e] lg:border-b-0" : "",
+      i % 2 === 1 ? "pl-6 border-l border-[#1e1e1e]" : "",
+      i === 0 ? "lg:pl-0 lg:border-l-0" : "lg:pl-7 lg:border-l lg:border-[#1e1e1e]",
+    ].join(" ")
+
+  const formatPrice = (price?: number) =>
+    typeof price === "number" ? `₦${price.toLocaleString("en-NG")}` : ""
 
   return (
-    <div className="py-6 flex flex-col gap-6">
-
-      {/* Welcome header */}
-      <div className="flex items-start justify-between">
+    <div className="flex flex-col">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[4px] text-[#E83D8A] mb-1.5 font-semibold">
-            Welcome back
-          </p>
-          <h1 className="text-2xl font-bold text-white tracking-wide">
+          <p className="text-sm text-white/60 mb-1.5">Welcome back</p>
+          <h1
+            className={`${display.className} text-[52px] md:text-[68px] font-light leading-none tracking-[-0.01em] text-white`}
+          >
             Dashboard
           </h1>
-          <p className="text-sm text-white/30 mt-1">
-            Manage your Luxiana Beauty store
-          </p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-green-500/10 border border-green-500/20">
-          <MdTrendingUp size={14} className="text-green-400" />
-          <span className="text-[11px] font-semibold text-green-400 tracking-wide">
-            Store Live
-          </span>
-        </div>
-      </div>
+        <Link
+          href="/admin/products/new"
+          className="inline-flex items-center justify-center h-12 px-6 rounded-full bg-[#B9A5E8] text-[#1a1226] text-sm font-medium transition-colors duration-200 hover:bg-[#D8C9F5] outline-none focus-visible:ring-2 focus-visible:ring-[#B9A5E8]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060606]"
+        >
+          Add new product
+        </Link>
+      </header>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {statCards.map(card => {
-          const Icon = card.icon
-          return (
-            <div
-              key={card.label}
-              className={`bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 cursor-default ${card.border} ${card.glow}`}
+      {/* Stats strip */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 mt-10 md:mt-11 border-y border-[#1e1e1e]">
+        {statCards.map((card, i) => (
+          <div key={card.label} className={cellClass(i)}>
+            <p
+              className={`${display.className} text-[64px] md:text-[80px] font-light leading-none ${
+                card.value === 0 ? "text-white/55" : "text-white"
+              }`}
             >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
-                <Icon size={18} className={card.iconColor} />
-              </div>
-              <div>
-                <p className="text-3xl font-black text-white leading-none">
-                  {card.value}
-                </p>
-                <p className="text-[11px] text-white/40 tracking-wide mt-1.5">
-                  {card.label}
-                </p>
-                <p className={`text-[10px] mt-1 font-semibold ${card.trendColor}`}>
-                  {card.trend}
-                </p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+              {card.value}
+            </p>
+            <p className="mt-2.5 text-sm font-medium text-white">{card.label}</p>
+            <p className={`mt-0.5 text-[13px] ${card.hintColor}`}>{card.hint}</p>
+          </div>
+        ))}
+      </section>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        {/* Quick actions */}
-        <div className="lg:col-span-2 bg-[#111111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1e1e1e] flex items-center justify-between">
-            <h2 className="text-[11px] font-bold text-white/50 uppercase tracking-[3px]">
-              Quick Actions
+      {/* Products + categories */}
+      <section className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-12 lg:gap-14 mt-12">
+        {/* Recent products */}
+        <div>
+          <div className="flex items-baseline justify-between mb-5">
+            <h2 className={`${display.className} text-[32px] font-normal text-white`}>
+              Recent products
             </h2>
+            <Link
+              href="/admin/products"
+              className="text-sm text-[#B9A5E8] hover:text-[#D8C9F5] transition-colors"
+            >
+              View all
+            </Link>
           </div>
-          <div className="p-3 flex flex-col gap-2">
-            {quickActions.map(action => {
-              const Icon = action.icon
-              return (
-                <Link key={action.href} href={action.href}>
-                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 cursor-pointer group ${
-                    action.primary
-                      ? "bg-[#E83D8A]/8 border-[#E83D8A]/20 hover:bg-[#E83D8A]/15 hover:border-[#E83D8A]/35"
-                      : "bg-white/3 border-[#1e1e1e] hover:bg-white/6 hover:border-white/15"
-                  }`}>
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${action.iconBg}`}>
-                      <Icon size={18} className={action.iconColor} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] font-semibold ${action.primary ? "text-[#E83D8A]" : "text-white/80"}`}>
-                        {action.label}
-                      </p>
-                      <p className="text-[11px] text-white/30 mt-0.5">
-                        {action.sub}
-                      </p>
-                    </div>
-                    <MdArrowForward
-                      size={16}
-                      className="text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0"
-                    />
+
+          {recentProducts.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {recentProducts.map((p) => (
+                <Link key={p._id} href="/admin/products" className="group block">
+                  <div className="relative aspect-[4/5] rounded-[20px] overflow-hidden bg-[#1d1830] border border-[#2a2342] transition-colors duration-200 group-hover:border-[#B9A5E8]/40">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`${p.imageUrl}?w=600&auto=format`}
+                        alt={p.name}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-[13px] text-white/60">
+                        No photo
+                      </div>
+                    )}
+                    {p.inStock === false && (
+                      <span className="absolute top-3 left-3 h-6 px-2.5 inline-flex items-center rounded-full bg-black/70 text-[11px] font-medium text-red-300">
+                        Out of stock
+                      </span>
+                    )}
                   </div>
+                  <p className="mt-3 text-sm font-medium text-white truncate">{p.name}</p>
+                  <p className="text-[13px] text-white/60 truncate">
+                    {[p.category, formatPrice(p.price)].filter(Boolean).join(" · ")}
+                  </p>
                 </Link>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[20px] border border-[#1e1e1e] bg-white/[0.02] px-6 py-12 text-center">
+              <p className={`${display.className} text-[26px] text-white`}>
+                Add your first product
+              </p>
+              <p className="mt-2 text-sm text-white/60">
+                Products you add show up here, newest first.
+              </p>
+              <Link
+                href="/admin/products/new"
+                className="mt-6 inline-flex items-center justify-center h-11 px-5 rounded-full border border-[#2a2342] text-sm text-white/85 hover:border-[#B9A5E8]/50 hover:text-white transition-colors"
+              >
+                Add new product
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* Categories + CTA */}
-        <div className="flex flex-col gap-4">
+        {/* Categories */}
+        <div>
+          <h2 className={`${display.className} text-[32px] font-normal text-white mb-2`}>
+            Categories
+          </h2>
+          <p className="text-sm text-white/60 mb-4">
+            {stats.categories} active {stats.categories === 1 ? "category" : "categories"}
+          </p>
 
-          {/* Categories card */}
-          <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-5 flex items-center justify-between hover:border-[#E83D8A]/20 transition-all duration-300">
-            <div>
-              <p className="text-[11px] text-white/30 tracking-[2px] uppercase font-semibold">
-                Categories
-              </p>
-              <p className="text-4xl font-black text-white mt-2 leading-none">
-                {stats.categories}
-              </p>
-              <p className="text-[11px] text-white/30 mt-1.5">
-                Active categories
-              </p>
+          {categories.length > 0 ? (
+            <div className="border-b border-[#1e1e1e]">
+              {categories.map((c) => (
+                <Link
+                  key={c._id}
+                  href="/admin/categories"
+                  className="group flex items-center justify-between min-h-14 border-t border-[#1e1e1e] transition-colors"
+                >
+                  <span
+                    className={`${display.className} text-2xl text-white group-hover:text-[#D8C9F5] transition-colors`}
+                  >
+                    {c.title}
+                  </span>
+                  <span className="text-[13px] text-white/60 group-hover:text-white transition-colors">
+                    Manage
+                  </span>
+                </Link>
+              ))}
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-[#E83D8A]/10 flex items-center justify-center">
-              <MdCategory size={24} className="text-[#E83D8A]" />
-            </div>
-          </div>
-
-          {/* Add product CTA */}
-          <div className="bg-gradient-to-br from-[#E83D8A]/15 to-[#c0256e]/8 border border-[#E83D8A]/20 rounded-2xl p-5 flex flex-col gap-4">
-            <div>
-              <p className="text-[13px] font-bold text-white">
-                New Product?
+          ) : (
+            <div className="border-t border-b border-[#1e1e1e] py-6">
+              <p className="text-sm text-white/60">
+                No categories yet. Create one to organise your products.
               </p>
-              <p className="text-[11px] text-white/40 mt-1 leading-relaxed">
-                Add a new product to your store instantly
-              </p>
-            </div>
-            <Link href="/admin/products/new">
-              <Button
-                size="sm"
-                className="w-full bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white text-xs font-bold tracking-wide border-none shadow-[0_0_20px_rgba(232,61,138,0.3)] flex items-center gap-1.5"
+              <Link
+                href="/admin/categories"
+                className="mt-3 inline-block text-sm text-[#B9A5E8] hover:text-[#D8C9F5] transition-colors"
               >
-                <MdAddBox size={15} />
-                Add Product
-              </Button>
+                Add a category
+              </Link>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2.5 mt-7">
+            <Link
+              href="/admin/products"
+              className="flex items-center justify-center h-12 rounded-full border border-[#2a2342] text-sm text-white/85 transition-colors duration-200 hover:border-[#B9A5E8]/50 hover:text-white"
+            >
+              Manage products
+            </Link>
+            <Link
+              href="/"
+              className="flex items-center justify-center h-12 rounded-full border border-[#2a2342] text-sm text-white/85 transition-colors duration-200 hover:border-[#B9A5E8]/50 hover:text-white"
+            >
+              View live website
             </Link>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

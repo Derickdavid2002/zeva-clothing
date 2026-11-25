@@ -10,13 +10,15 @@ export default async function OrderDetailPage({
 }) {
   const { id } = await params
 
-  const order = await adminClient.fetch(
-    `*[_type == "order" && _id == $id][0] {
-      _id, orderNumber, status, customer, delivery,
-      items, subtotal, total, proofOfPayment, notes, createdAt
-    }`,
-    { id }
-  )
+  let order: any = null
+  try {
+    order = await adminClient.fetch(
+      `*[_type == "order" && _id == $id][0] { _id, orderNumber, status, customer, delivery, items, subtotal, total, proofOfPayment, notes, rejectionReason, createdAt }`,
+      { id }, { cache: "no-store" }
+    )
+  } catch {
+    redirect("/admin/orders")
+  }
 
   if (!order) redirect("/admin/orders")
 

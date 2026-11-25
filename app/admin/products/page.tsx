@@ -6,13 +6,15 @@ import { Product } from "../../types"
 export const dynamic = "force-dynamic" // ← ADD THIS LINE
 
 export default async function AdminProductsPage() {
-  const products: Product[] = await adminClient.fetch(
-    `*[_type == "product"] | order(_createdAt desc) {
-      _id, name, slug, category, price, description, image, inStock, featured
-    }`,
-    {},
-    { cache: "no-store" } // ← ADD THIS
-  )
+  let products: Product[] = []
+  try {
+    products = await adminClient.fetch(
+      `*[_type == "product"] | order(_createdAt desc) { _id, name, slug, category, price, description, image, images, sizes, colors, variants, inStock, featured }`,
+      {}, { cache: "no-store" }
+    )
+  } catch {
+    // Keep the admin shell available until the independent Zeva CMS is configured.
+  }
 
   return (
     <AdminLayout>

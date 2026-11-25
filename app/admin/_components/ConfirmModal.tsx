@@ -1,7 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { MdWarning, MdClose } from "react-icons/md"
+import { useEffect } from "react"
+import { MdClose } from "react-icons/md"
+import { display } from "@/lib/fonts"
 
 interface ConfirmModalProps {
   isOpen: boolean
@@ -15,6 +16,12 @@ interface ConfirmModalProps {
   onCancel: () => void
 }
 
+const CONFIRM_STYLES = {
+  danger: "bg-red-600 text-white hover:bg-red-500",
+  warning: "bg-amber-400 text-[#1a1000] hover:bg-amber-300",
+  info: "bg-[#B9A5E8] text-[#1a1226] hover:bg-[#D8C9F5]",
+}
+
 export default function ConfirmModal({
   isOpen,
   title,
@@ -26,98 +33,70 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) onCancel()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [isOpen, loading, onCancel])
+
   if (!isOpen) return null
-
-  const colors = {
-    danger: {
-      icon: "rgba(239,68,68,0.1)",
-      iconBorder: "rgba(239,68,68,0.2)",
-      iconColor: "text-red-400",
-      btn: "linear-gradient(135deg, #ef4444, #dc2626)",
-      btnShadow: "0 0 20px rgba(239,68,68,0.3)",
-    },
-    warning: {
-      icon: "rgba(245,158,11,0.1)",
-      iconBorder: "rgba(245,158,11,0.2)",
-      iconColor: "text-amber-400",
-      btn: "linear-gradient(135deg, #f59e0b, #d97706)",
-      btnShadow: "0 0 20px rgba(245,158,11,0.3)",
-    },
-    info: {
-      icon: "rgba(232,61,138,0.1)",
-      iconBorder: "rgba(232,61,138,0.2)",
-      iconColor: "text-[#E83D8A]",
-      btn: "linear-gradient(135deg, #E83D8A, #c0256e)",
-      btnShadow: "0 0 20px rgba(232,61,138,0.3)",
-    },
-  }
-
-  const c = colors[variant]
 
   return (
     <div
       className="fixed inset-0 z-[300] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
-      onClick={e => { if (e.target === e.currentTarget) onCancel() }}
+      style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onCancel()
+      }}
     >
       <div
-        className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-4"
-        style={{ background: "#111111", border: "1px solid #1e1e1e" }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        className="relative w-full max-w-md rounded-3xl p-7 bg-[#0d0d0e] border border-[#2a2342]"
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: c.icon, border: `1px solid ${c.iconBorder}` }}
-            >
-              <MdWarning size={18} className={c.iconColor} />
-            </div>
-            <h3 className="text-white font-bold text-[15px] leading-tight">
-              {title}
-            </h3>
-          </div>
+        <button
+          onClick={onCancel}
+          disabled={loading}
+          aria-label="Close"
+          className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[#B9A5E8]/50"
+        >
+          <MdClose size={18} />
+        </button>
+
+        <h3
+          id="confirm-modal-title"
+          className={`${display.className} text-[30px] font-normal leading-tight text-white pr-10`}
+        >
+          {title}
+        </h3>
+        <p className="mt-3 text-sm leading-relaxed text-white/65">{message}</p>
+
+        <div className="flex gap-3 mt-7">
           <button
             onClick={onCancel}
-            className="text-white/30 hover:text-white transition-colors cursor-pointer flex-shrink-0"
-          >
-            <MdClose size={18} />
-          </button>
-        </div>
-
-        {/* Message */}
-        <p className="text-white/50 text-[13px] leading-relaxed pl-[52px]">
-          {message}
-        </p>
-
-        {/* Actions */}
-        <div className="flex gap-3 pt-1">
-          <Button
-            onClick={onCancel}
             disabled={loading}
-            variant="outline"
-            className="flex-1 border-[#1e1e1e] bg-transparent text-white/40 hover:text-white hover:border-white/20 h-11"
+            className="flex-1 h-12 rounded-full border border-[#2a2342] text-sm text-white/85 transition-colors hover:border-[#B9A5E8]/50 hover:text-white cursor-pointer disabled:opacity-50 outline-none focus-visible:ring-1 focus-visible:ring-[#B9A5E8]/50"
           >
             {cancelLabel}
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 h-11 font-bold text-sm border-none disabled:opacity-50 flex items-center justify-center gap-2 text-white"
-            style={{
-              background: c.btn,
-              boxShadow: c.btnShadow,
-            }}
+            className={`flex-1 h-12 rounded-full text-sm font-medium transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${CONFIRM_STYLES[variant]}`}
           >
             {loading ? (
               <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 Please wait...
               </>
             ) : (
               confirmLabel
             )}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

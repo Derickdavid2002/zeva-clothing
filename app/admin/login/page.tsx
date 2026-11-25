@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div
         className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse, rgba(232,61,138,0.12) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse, rgba(185,165,232,0.12) 0%, transparent 70%)",
           filter: "blur(40px)",
         }}
       />
@@ -58,19 +58,19 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-10">
           <h1
-            className="font-black text-[22px] text-[#E83D8A] tracking-[3px] uppercase mb-1"
+            className="font-black text-[22px] text-[#B9A5E8] tracking-[3px] uppercase mb-1"
             style={{
               fontFamily: "'Arial Black', sans-serif",
-              textShadow: "0 0 20px rgba(232,61,138,0.5)",
+              textShadow: "0 0 20px rgba(185,165,232,0.5)",
             }}
           >
-            LUXIANA BEAUTY
+            ZEVA COLLECTION
           </h1>
           <p
-            className="text-[#f472b6] text-[12px] tracking-widest opacity-90 mb-2"
+            className="text-[#D8C9F5] text-[12px] tracking-widest opacity-90 mb-2"
             style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
           >
-            by cindy
+            
           </p>
           <p className="text-white/30 text-[11px] uppercase tracking-[3px]">
             Admin Dashboard
@@ -83,18 +83,18 @@ export default function LoginPage() {
           style={{
             background: "#111111",
             border: "1px solid #1e1e1e",
-            boxShadow: "0 0 40px rgba(232,61,138,0.06)",
+            boxShadow: "0 0 40px rgba(185,165,232,0.06)",
           }}
         >
           <div className="flex items-center gap-3 mb-6">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{
-                background: "rgba(232,61,138,0.1)",
-                border: "1px solid rgba(232,61,138,0.2)",
+                background: "rgba(185,165,232,0.1)",
+                border: "1px solid rgba(185,165,232,0.2)",
               }}
             >
-              <MdLock size={18} className="text-[#E83D8A]" />
+              <MdLock size={18} className="text-[#B9A5E8]" />
             </div>
             <div>
               <h2 className="text-white font-bold text-[15px]">Sign In</h2>
@@ -120,7 +120,7 @@ export default function LoginPage() {
                   value={form.username}
                   onChange={e => setForm({ ...form, username: e.target.value })}
                   required
-                  className="pl-9 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/15 focus:border-[#E83D8A]/40 rounded-xl h-11"
+                  className="pl-9 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/15 focus:border-[#B9A5E8]/40 rounded-xl h-11"
                 />
               </div>
             </div>
@@ -141,7 +141,7 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
                   required
-                  className="pl-9 pr-10 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/15 focus:border-[#E83D8A]/40 rounded-xl h-11"
+                  className="pl-9 pr-10 bg-white/5 border-[#1e1e1e] text-white placeholder:text-white/15 focus:border-[#B9A5E8]/40 rounded-xl h-11"
                 />
                 <button
                   type="button"
@@ -173,7 +173,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 mt-2 bg-gradient-to-r from-[#E83D8A] to-[#c0256e] hover:opacity-90 text-white font-bold tracking-[1.5px] uppercase text-sm border-none shadow-[0_0_30px_rgba(232,61,138,0.35)] disabled:opacity-50 flex items-center gap-2"
+              className="w-full h-12 mt-2 bg-gradient-to-r from-[#B9A5E8] to-[#8063B5] hover:opacity-90 text-white font-bold tracking-[1.5px] uppercase text-sm border-none shadow-[0_0_30px_rgba(185,165,232,0.35)] disabled:opacity-50 flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -191,7 +191,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-white/15 text-[11px] mt-6">
-          © 2025 Luxiana Beauty by Cindy
+          © 2026 Zeva Collection
         </p>
       </div>
     </div>
