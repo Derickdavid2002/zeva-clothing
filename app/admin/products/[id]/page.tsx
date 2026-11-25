@@ -1,8 +1,13 @@
+
 import { adminClient } from "@/lib/adminSanity"
 import AdminLayout from "../../_components/AdminLayout"
 import EditProductForm from "./_components/EditProductForm"
 import { Product } from "../../../types"
 import { redirect } from "next/navigation"
+
+type EditingProduct = Product & {
+  stock?: number
+}
 
 export default async function EditProductPage({
   params,
@@ -11,11 +16,28 @@ export default async function EditProductPage({
 }) {
   const { id } = await params
 
-  let product: Product | null = null
+  let product: EditingProduct | null = null
+
   try {
     product = await adminClient.fetch(
-      `*[_type == "product" && _id == $id][0] { _id, name, slug, category, price, description, image, images, sizes, colors, variants, inStock, featured }`,
-      { id }, { cache: "no-store" }
+      `*[_type == "product" && _id == $id][0] {
+        _id,
+        name,
+        slug,
+        category,
+        price,
+        description,
+        image,
+        images,
+        sizes,
+        colors,
+        variants,
+        stock,
+        inStock,
+        featured
+      }`,
+      { id },
+      { cache: "no-store" }
     )
   } catch {
     redirect("/admin/products")
